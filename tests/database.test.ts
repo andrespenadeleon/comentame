@@ -1,0 +1,84 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { ratingQuestion } from '../src/lib/validation';
+import { PGlite } from '@electric-sql/pglite';
+// PostgreSQL executes the real migration. Only Supabase-owned schemas are stubbed.
+test('migración: aislamiento, límites de restaurantes, borradores y fotos',async()=>{
+ const db=new PGlite();
+ try {
+ await db.exec(`
+ create role anon; create role authenticated;
+ create schema auth; create table auth.users(id uuid primary key);
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ grant usage on schema auth, public to authenticated,anon;
+ create schema storage;
+ create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);
+ create table storage.objects(id uuid default gen_random_uuid(),bucket_id text,name text);
+ alter table storage.objects enable row level security;
+ grant usage on schema storage to authenticated,anon;
+ grant select,insert,delete on storage.objects to authenticated;
+ create function storage.foldername(name text) returns text[] language sql immutable as $$select string_to_array(name,'/')$$;
+ `);
+ await db.exec(await readFile(new URL('../supabase/migrations/202610260001_initial.sql',import.meta.url),'utf8'));
+ const a='00000000-0000-4000-8000-000000000001', b='00000000-0000-4000-8000-000000000002';
+ await db.query('insert into auth.users(id) values($1),($2)',[a,b]);
+ async function asUser(id:string){await db.exec(`reset role; set role authenticated; select set_config('request.jwt.claim.sub','${id}',false);`);}
+ await asUser(a);
+ await assert.rejects(db.query(`select public.create_restaurant('A','Dirección','+528112345678')`),/profile_required/);
+ await db.query('insert into public.profiles(id,full_name,phone) values($1,$2,$3)',[a,'Admin A','+528112345678']);
+ const ra=(await db.query<{id:string}>(`select public.create_restaurant('A','Dirección','+528112345678') as id`)).rows[0].id;
+ await assert.rejects(db.query(`select public.create_restaurant('Extra','Dirección','+528112345678')`),/restaurant_limit/);
+ await assert.rejects(db.query('update public.profiles set onboarding_completed=true'),/permission denied/);
+ await db.exec('select public.complete_onboarding()');
+ assert.equal((await db.query<{onboarding_completed:boolean}>('select onboarding_completed from public.profiles')).rows[0].onboarding_completed,true);
+ await assert.rejects(db.query('insert into public.restaurants(owner_id,name,address,phone) values($1,$2,$3,$4)',[a,'Bypass','x','+528112345678']),/permission denied/);
+ const emp=(await db.query<{id:string}>('insert into public.employees(restaurant_id,first_name,last_name,role) values($1,$2,$3,$4) returning id',[ra,'Ana','García','Mesera'])).rows[0].id;
+ await assert.rejects(db.query('update public.employees set id=$1 where id=$2',[b,emp]),/permission denied/);
+ const path=`${ra}/${emp}/${a}.png`;
+ await db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['employee-photos',path]);
+ await db.query('update public.employees set photo_path=$1 where id=$2',[path,emp]);
+ assert.equal((await db.query('select * from storage.objects')).rows.length,1);
+ const q=[{id:a,prompt:'¿Qué mejorarías?',type:'text',options:[],required:false}];
+ await db.query('insert into public.survey_drafts(restaurant_id,title,questions) values($1,$2,$3)',[ra,'Opinión',JSON.stringify(q)]);
+ await assert.rejects(db.query('update public.survey_drafts set questions=$1 where restaurant_id=$2',[JSON.stringify([{...q[0],type:'single',options:['Una']}]),ra]),/check constraint/);
+ await assert.rejects(db.query('update public.survey_drafts set questions=$1 where restaurant_id=$2',[JSON.stringify([{...q[0],type:null}]),ra]),/check constraint/);
+ await asUser(b);
+ await assert.rejects(db.query('insert into public.profiles(id,full_name,phone) values($1,$2,$3)',[a,'Impostor','+528112345678']),/row-level security/);
+ for(const table of ['profiles','restaurants','employees','survey_drafts'])assert.equal((await db.query(`select * from public.${table}`)).rows.length,0,table);
+ assert.equal((await db.query('select * from storage.objects')).rows.length,0);
+ await assert.rejects(db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['employee-photos',`${ra}/${emp}/${b}.png`]),/row-level security/);
+ await assert.rejects(db.query('insert into public.employees(restaurant_id,first_name,last_name,role) values($1,$2,$3,$4)',[ra,'Other','Admin','Mesero']),/row-level security/);
+ assert.equal((await db.query('update public.restaurants set name=$1 where id=$2 returning id',['Robado',ra])).rows.length,0);
+ await assert.rejects(db.query('select * from private.restaurant_limits'),/permission denied/);
+ await assert.rejects(db.query(`select public.complete_onboarding()`),/restaurant_required/);
+ // Approval is possible only from the privileged database side.
+ await db.exec(`reset role`);
+ await db.query('insert into private.restaurant_limits(owner_id,max_restaurants) values($1,2)',[a]);
+ await asUser(a);
+ await db.exec(`select public.create_restaurant('Autorizado','Dirección','+528112345678')`);
+ assert.equal((await db.query('select * from public.restaurants')).rows.length,2);
+ await assert.rejects(db.exec(`select public.create_restaurant('Tercero','Dirección','+528112345678')`),/restaurant_limit/);
+ const fullDraft=Array.from({length:20},(_,i)=>({...q[0],id:`00000000-0000-4000-8000-${String(i+100).padStart(12,'0')}`}));
+ await db.query('update public.survey_drafts set questions=$1 where restaurant_id=$2',[JSON.stringify(fullDraft),ra]);
+ await db.exec('reset role');
+ await db.exec(await readFile(new URL('../supabase/migrations/202610260002_feedback.sql',import.meta.url),'utf8'));
+ await asUser(a);
+ const migrated=(await db.query<{questions:unknown[]}>('select questions from public.survey_drafts where restaurant_id=$1',[ra])).rows[0].questions;
+ assert.deepEqual(migrated,[ratingQuestion(),...fullDraft]);
+ await db.query('update public.restaurants set google_maps_url=$1 where id=$2',['https://maps.app.goo.gl/restaurante',ra]);
+ await assert.rejects(db.query('update public.restaurants set google_maps_url=$1 where id=$2',['javascript:alert(1)',ra]),/check constraint/);
+ await assert.rejects(db.query('update public.survey_drafts set questions=$1 where restaurant_id=$2',[JSON.stringify(q),ra]),/check constraint/);
+ await assert.rejects(db.query('update public.survey_drafts set questions=$1 where restaurant_id=$2',[JSON.stringify([{...ratingQuestion(),required:false},...q]),ra]),/check constraint/);
+ await db.query('update public.survey_drafts set questions=$1 where restaurant_id=$2',[JSON.stringify([ratingQuestion(),...q]),ra]);
+ await asUser(b);
+ assert.equal((await db.query('select * from public.restaurants')).rows.length,0);
+ await db.query('insert into public.profiles(id,full_name,phone) values($1,$2,$3)',[b,'Admin B','+528112345678']);
+ const rb=(await db.query<{id:string}>(`select public.create_restaurant('B','Dirección','+528112345678','https://maps.app.goo.gl/b') as id`)).rows[0].id;
+ assert.equal((await db.query<{google_maps_url:string}>('select google_maps_url from public.restaurants where id=$1',[rb])).rows[0].google_maps_url,'https://maps.app.goo.gl/b');
+ await assert.rejects(db.query(`select public.create_restaurant('B extra','Dirección','+528112345678',null)`),/restaurant_limit/);
+ await db.exec('reset role; set role anon');
+ await assert.rejects(db.query('select * from public.employees'),/permission denied/);
+ await assert.rejects(db.query(`select public.create_restaurant('Anon','x','+528112345678')`),/permission denied/);
+ } finally {await db.close();}
+});
