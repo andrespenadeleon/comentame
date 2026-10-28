@@ -46,3 +46,16 @@ Cambios locales de presentación: filas compactas de opiniones con nombre, estre
 Se conservaron las consultas, filtros, orden, paginación, esquema, API y destinos del detalle. Por decisión expresa del propietario, no se amplió la consulta para obtener los tipos de preguntas: los extractos solo aparecen cuando las preguntas de la versión original ya están disponibles (por ejemplo, en el resumen para la versión publicada o cuando ya se cargó su detalle). No se infiere que una opción seleccionada sea un comentario. No existe modelo de leído/no leído, y no se agregó.
 
 No se ejecutaron tests, typecheck, build ni revisión de navegador, por instrucción del propietario. Estos cambios no requieren una nueva migración.
+
+
+## Portal admin: primera versión
+
+Se implementó `/admin` con directorio global de empleados, búsqueda/filtros/paginación y copia de enlaces canónicos por empleado. Se prepararon `202610270003_portal_admin.sql` y `portal-admin-setup.sql`. El acceso requiere usuario confirmado en Supabase Auth y membresía manual en `private.portal_admins`. Los controles del servidor y del RPC consultan esa membresía; las políticas existentes de cuentas de restaurantes no se ampliaron. Login y las entradas de dashboard/onboarding redirigen las cuentas de portal admin al directorio.
+
+No se ejecutaron pruebas, typecheck, lint, build ni revisión de navegador por instrucción del propietario. No se creó ningún usuario real, no se aplicó la migración remota y no se publicaron estos cambios. El propietario debe aplicar la migración, otorgar el permiso al UUID de su usuario y realizar la revisión funcional.
+
+## Ajuste de vista previa publicada y encabezado de opiniones
+
+Se añadió un botón principal de vista previa al estado de encuesta publicada, usando exclusivamente título, preguntas y tema de la versión publicada. Editar encuesta queda como acción secundaria. La vista previa reutiliza el modo sin persistencia del formulario de comensales.
+
+En Opiniones, el contador se colocó junto al título Las voces de tus comensales y el icono/desplegable de filtros pasó al extremo derecho del mismo encabezado. Se mantuvieron los campos, las acciones Aplicar/Limpiar y las consultas existentes. No se ejecutaron pruebas, builds ni revisión de navegador.

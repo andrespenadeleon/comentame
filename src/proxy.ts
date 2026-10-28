@@ -11,7 +11,7 @@ export async function proxy(request: NextRequest) {
   });
   // Refresh and validate the token; authorization is repeated in the data layer and RLS.
   const {data:{user}} = await supabase.auth.getUser();
-  const protectedPath = ['/dashboard','/onboarding','/restablecer'].some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + '/'));
+  const protectedPath = ['/admin','/dashboard','/onboarding','/restablecer'].some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + '/'));
   if (protectedPath && (!user || !user.email_confirmed_at)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
@@ -24,4 +24,4 @@ export async function proxy(request: NextRequest) {
   response.headers.set('Cache-Control','private, no-store');
   return response;
 }
-export const config = {matcher:['/dashboard/:path*','/onboarding/:path*','/login','/registro','/restablecer','/auth/:path*']};
+export const config = {matcher:['/admin/:path*','/dashboard/:path*','/onboarding/:path*','/login','/registro','/restablecer','/auth/:path*']};

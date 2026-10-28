@@ -1,3 +1,4 @@
+import { isPortalAdmin } from '@/lib/portal-admin';
 import Link from 'next/link';
 import { redirect,notFound } from 'next/navigation';
 import { LifeBuoy } from 'lucide-react';
@@ -13,6 +14,7 @@ import { AddRestaurant } from '@/components/add-restaurant';
 export const metadata={title:'Tu dashboard',robots:{index:false,follow:false}};
 const sections=['resumen','opiniones','restaurante','equipo','encuesta','soporte'];
 export default async function Dashboard({searchParams}:{searchParams:Promise<OpinionParams>}) {
+ if(await isPortalAdmin())redirect('/admin');
  const {db,profile,restaurants,user}=await workspace();
  if(!profile?.onboarding_completed||!restaurants.length)redirect('/onboarding');
  const params=await searchParams;

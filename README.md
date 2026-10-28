@@ -16,7 +16,7 @@ Abrir http://localhost:3000. Los únicos valores públicos son `NEXT_PUBLIC_SUPA
 
 ## Activación de Supabase (pendiente en el proyecto remoto)
 
-1. En el proyecto `odthdpmmqzdzwqwggeuv`, abrir **SQL Editor** y ejecutar **una sola vez** las migraciones en orden: `202610260001_initial.sql`, `202610260002_feedback.sql` , `202610270001_surveys.sql` y `202610270002_survey_builder_v2.sql`, desde `supabase/migrations/`. Ejecuta únicamente las migraciones que todavía no hayas aplicado. Cada migración es transaccional. Crean tablas, políticas, funciones, fotos privadas de empleados y logos públicos de restaurantes. No modifica usuarios existentes.
+1. En el proyecto `odthdpmmqzdzwqwggeuv`, abrir **SQL Editor** y ejecutar **una sola vez** las migraciones en orden: `202610260001_initial.sql`, `202610260002_feedback.sql`, `202610270001_surveys.sql`, `202610270002_survey_builder_v2.sql` y `202610270003_portal_admin.sql`, desde `supabase/migrations/`. Ejecuta únicamente las migraciones que todavía no hayas aplicado. Cada migración es transaccional. Crean tablas, políticas, funciones, fotos privadas de empleados y logos públicos de restaurantes. No modifica usuarios existentes.
 2. En **Authentication → Providers → Email**, mantener registro por correo y confirmación de correo habilitados. Contraseña mínima: al menos 8 caracteres.
 3. En **Authentication → URL Configuration**, configurar:
    - Site URL: `https://comentame.vercel.app`
@@ -97,7 +97,7 @@ El build usa Webpack por compatibilidad con este entorno; mantiene App Router y 
 
 ## Actualización de feedback: Google Maps y calificación fija
 
-Si ya aplicaste la migración inicial, ejecuta **solo** `supabase/migrations/202610260002_feedback.sql` en Supabase SQL Editor. Para instalaciones nuevas, aplica las cuatro migraciones en orden, incluida la actualización de encuestas indicada abajo. No vuelvas a ejecutar la inicial sobre una base existente.
+Si ya aplicaste la migración inicial, ejecuta **solo** `supabase/migrations/202610260002_feedback.sql` en Supabase SQL Editor. Para instalaciones nuevas, aplica las cinco migraciones en orden, incluida la actualización de encuestas indicada abajo. No vuelvas a ejecutar la inicial sobre una base existente.
 
 La actualización agrega `google_maps_url` opcional, conserva el cupo y aislamiento de restaurantes, y antepone la pregunta fija de 1–5 estrellas a los borradores existentes sin borrar sus preguntas. Se admiten hasta 20 preguntas adicionales a la calificación. La interfaz de borrador normaliza líneas vacías en las opciones antes de validar/guardar.
 
@@ -140,3 +140,23 @@ No se ejecutaron tests, typecheck, lint, build ni revisión de navegador para es
 La bandeja de opiniones agrupa sus filtros existentes en un desplegable y presenta filas compactas, sin cambios de consulta, filtros, orden ni paginación. Los extractos usan únicamente respuestas de preguntas de texto cuyo tipo ya se conoce con los datos cargados; si no se conoce, se omiten. No se agregó un estado leído/no leído.
 
 Al entrar en Mi encuesta, una encuesta ya publicada muestra su estado y Editar encuesta. Los enlaces de empleados dejaron de mostrarse en la cuenta del restaurante: su administración queda pendiente para el portal admin. Al finalizar la encuesta pública se destacan las redes configuradas. El nav indica con un icono cuando el restaurante seleccionado aún no tiene una encuesta publicada.
+
+
+## Portal admin: directorio de empleados y enlaces NFC
+
+Implementación inicial en `/admin`, independiente del onboarding de restaurantes. Lista empleados de todos los restaurantes con nombre, puesto, restaurante, estado de encuesta y Copiar enlace. Incluye búsqueda por nombre/restaurante/puesto, filtro por restaurante, estado activo/archivado y paginación de 50 empleados. Los enlaces usan `NEXT_PUBLIC_SITE_URL` y conservan los UUID actuales del restaurante y empleado.
+
+### Configuración manual en Supabase
+
+1. Aplicar `supabase/migrations/202610270003_portal_admin.sql` después de las cuatro migraciones anteriores. No volver a ejecutar las anteriores si ya están aplicadas.
+2. Crear tu usuario en **Authentication → Users** con email y contraseña y confirmar el correo. Copiar su UUID.
+3. Abrir `supabase/portal-admin-setup.sql`, reemplazar `REPLACE_WITH_AUTH_USER_UUID` por ese UUID y ejecutar el INSERT en SQL Editor.
+4. Iniciar sesión desde `/login`. La cuenta autorizada entra directamente en `/admin`, sin crear un perfil de restaurante ni completar onboarding. Si ya tiene sesión iniciada, puede abrir `/admin` directamente.
+
+El permiso se guarda en `private.portal_admins`, no en `user_metadata`, y únicamente se asigna mediante SQL administrativo. La tabla no tiene permisos para clientes anónimos ni autenticados. Las funciones verifican `auth.uid()` contra la tabla en cada solicitud. El directorio usa una función de lectura con SECURITY DEFINER, `search_path` fijo y comprobación de administrador antes de consultar empleados. No se ampliaron las políticas de lectura de restaurantes/empleados para las cuentas normales. La página y el layout también verifican permisos en servidor. Revocar acceso se hace borrando la fila correspondiente de `private.portal_admins`; no es necesario esperar a renovar el JWT.
+
+No se necesita ninguna variable adicional ni clave `service_role`. Para tarjetas reales, configurar el dominio de producción en `NEXT_PUBLIC_SITE_URL` (actualmente `https://comentame.vercel.app`). En local, `.env.local` puede seguir apuntando a localhost para revisar enlaces de desarrollo.
+
+Se permite copiar enlaces de empleados activos antes de publicar para preparar las tarjetas, mostrando Encuesta sin publicar. El formulario público recibirá respuestas cuando se publique la encuesta. Los archivados aparecen al elegir Todos o Archivados y tienen el enlace desactivado. Si el portapapeles falla, se muestra el enlace para copiarlo manualmente.
+
+Esta primera versión del portal es de lectura y copia de enlaces. No incluye altas/ediciones de empleados, cambios de encuestas, aprobación de restaurantes ni chat. La migración y el alta manual del administrador quedan pendientes de aplicar en Supabase. No se ejecutaron tests, typecheck, build ni revisión de navegador durante esta implementación.

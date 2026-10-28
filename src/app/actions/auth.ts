@@ -21,7 +21,8 @@ export async function authenticate(mode:'login'|'signup'|'recover'|'reset'|'rese
     const {error}=await db.auth.signInWithPassword({email,password});
     if(error) return {error:messageFor(error),email};
     revalidatePath('/','layout');
-    redirect('/dashboard');
+    const {data:portalAdmin}=await db.rpc('is_portal_admin');
+    redirect(portalAdmin===true?'/admin':'/dashboard');
   }
   if(mode==='recover' || mode==='resend') {
     if(!loginSchema.shape.email.safeParse(email).success) return {error:'Escribe un correo válido.',email};

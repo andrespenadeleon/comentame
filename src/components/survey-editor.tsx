@@ -22,11 +22,12 @@ function initialDraft(initial?:SurveyDraft|null):SurveyDraft{return {title:initi
 type EditorProps={restaurantId:string;initial?:SurveyDraft|null;published?:PublishedSurvey|null;branding:SurveyBranding;onSaved?:()=>void;onConfigureRestaurant?:()=>void};
 export function SurveyEditor(props:EditorProps){
  const [editing,setEditing]=useState(!props.published);
+ const [publishedPreview,setPublishedPreview]=useState(false);
  const [published,setPublished]=useState(props.published||null);
  const [savedDraft,setSavedDraft]=useState(props.initial);
  const publishedHeading=useRef<HTMLHeadingElement>(null);
  useEffect(()=>{if(published&&!editing)publishedHeading.current?.focus();},[published,editing]);
- if(published&&!editing)return <section className="published-survey-state" aria-labelledby="published-survey-heading"><div className="survey-success"><Check size={30} aria-hidden="true"/></div><span className="pill">Publicada</span><h2 ref={publishedHeading} tabIndex={-1} id="published-survey-heading">Tu encuesta ya está publicada</h2><p>Tu encuesta está lista para recibir las opiniones de tus comensales.</p><Button onClick={()=>setEditing(true)}>Editar encuesta</Button></section>;
+ if(published&&!editing)return <><section className="published-survey-state" aria-labelledby="published-survey-heading"><div className="survey-success"><Check size={30} aria-hidden="true"/></div><span className="pill">Publicada</span><h2 ref={publishedHeading} tabIndex={-1} id="published-survey-heading">Tu encuesta ya está publicada</h2><p>Tu encuesta está lista para recibir las opiniones de tus comensales.</p><Button className="published-preview-cta" type="button" onClick={()=>setPublishedPreview(true)}><Eye size={21} aria-hidden="true"/>Vista previa de tu encuesta</Button><Button className="published-edit-action" type="button" variant="outline" onClick={()=>setEditing(true)}>Editar encuesta</Button></section>{publishedPreview&&<SurveyPreview onClose={()=>setPublishedPreview(false)}><CustomerSurvey preview branding={props.branding} title={published.title} questions={published.questions} theme={published.theme}/></SurveyPreview>}</>;
  return <SurveyBuilder {...props} initial={savedDraft} published={published} onPublished={(survey,draft)=>{setPublished(survey);setSavedDraft(draft);setEditing(false);}}/>;
 }
 function SurveyBuilder({restaurantId,initial,published,branding,onSaved,onConfigureRestaurant,onPublished}:EditorProps & {onPublished:(survey:PublishedSurvey,draft:SurveyDraft)=>void}){
