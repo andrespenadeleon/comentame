@@ -2,12 +2,13 @@
 import { useId,useRef,useState } from 'react';
 import Link from 'next/link';
 import { normalizeTheme,backgroundUrl,themeTokens,type SurveyTheme } from '@/lib/survey-theme';
-import { Check,ExternalLink,Instagram,Facebook,Youtube,Music2 } from 'lucide-react';
+import { Check,ExternalLink,Music2 } from 'lucide-react';
+import { InstagramIcon,FacebookIcon,YoutubeIcon } from './social-icons';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { guestContactSchema,validateAnswers,type Question } from '@/lib/validation';
 import { logoUrl,SOCIAL_NAMES,type SocialLinks,type SurveyBranding,type PublicSurvey,type Answers } from '@/lib/survey-types';
-const socialIcons={instagram:Instagram,facebook:Facebook,tiktok:Music2,youtube:Youtube};
+const socialIcons={instagram:InstagramIcon,facebook:FacebookIcon,tiktok:Music2,youtube:YoutubeIcon};
 export function SocialLinksList({links,prominent=false}:{links?:SocialLinks;prominent?:boolean}){
  const headingId=useId();
  const platforms=(Object.keys(SOCIAL_NAMES) as (keyof SocialLinks)[]).filter(key=>!!links?.[key]);
