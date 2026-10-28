@@ -1,0 +1,4 @@
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+export const metadata={title:'Gracias por tu interés',robots:{index:false,follow:false}};
+export default function Thanks(){return <main id="main" className="auth-main" style={{background:'radial-gradient(ellipse at 0% 0%,#edd8ff,transparent 65%),radial-gradient(ellipse at 100% 0%,#a8e8ff,transparent 65%),#fff'}}><Link href="/" className="wordmark" style={{display:'block'}}>comenta.me</Link><section className="auth-card stack" style={{textAlign:'center',maxWidth:650}}><div className="success-check" style={{margin:'0 auto'}}>✓</div><h1>¡Gracias por tu interés!</h1><p className="muted" style={{fontSize:18}}>Recibimos tus datos. Un representante de nuestro equipo se pondrá en contacto contigo pronto.</p><Button asChild><Link href="/">Volver al inicio ↗</Link></Button></section></main>;}

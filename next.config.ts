@@ -1,0 +1,14 @@
+import type { NextConfig } from 'next';
+const nextConfig: NextConfig = {
+  experimental: { webpackBuildWorker: false, serverActions: { bodySizeLimit: "3mb" } },
+  async redirects() { return [
+    {source: '/index.html', destination: '/', permanent: true},
+    {source: '/gracias.html', destination: '/gracias', permanent: true},
+  ]; },
+  async headers() { return [{ source: '/:path*', headers: [
+    {key:'X-Content-Type-Options',value:'nosniff'},
+    {key:'Referrer-Policy',value:'strict-origin-when-cross-origin'},
+    {key:'X-Frame-Options',value:'DENY'},
+  ] }]; },
+};
+export default nextConfig;
