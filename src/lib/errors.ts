@@ -8,6 +8,6 @@ export function messageFor(error: { code?: string; message?: string } | null): s
     PGRST205:'La configuración de datos está pendiente. Contacta al equipo de comenta.me.', PGRST202:'La configuración de datos está pendiente. Contacta al equipo de comenta.me.',
   };
   if (error?.code && messages[error.code]) return messages[error.code];
-  if (error?.message?.includes('restaurant_limit')) return 'Tu cuenta tiene un restaurante autorizado. Contacta a comenta.me para solicitar otro.';
+  if (error?.message?.includes('restaurant_limit')) return 'No pudimos agregar el restaurante. Contacta a soporte para revisar la configuración de tu cuenta.';
   return 'No pudimos completar la operación. Revisa tu conexión e inténtalo nuevamente.';
 }

@@ -59,3 +59,10 @@ No se ejecutaron pruebas, typecheck, lint, build ni revisión de navegador por i
 Se añadió un botón principal de vista previa al estado de encuesta publicada, usando exclusivamente título, preguntas y tema de la versión publicada. Editar encuesta queda como acción secundaria. La vista previa reutiliza el modo sin persistencia del formulario de comensales.
 
 En Opiniones, el contador se colocó junto al título Las voces de tus comensales y el icono/desplegable de filtros pasó al extremo derecho del mismo encabezado. Se mantuvieron los campos, las acciones Aplicar/Limpiar y las consultas existentes. No se ejecutaron pruebas, builds ni revisión de navegador.
+
+
+## Restaurantes sin límite temporal — 2 de noviembre de 2026
+
+Se preparó `202611020001_unlimited_restaurants.sql`, que elimina la comprobación de cupo de la función de creación compartida por las tres firmas existentes. Se mantienen autenticación, perfil requerido, propietario asignado por sesión y restricciones existentes. Se actualizaron el botón, la descripción y el mensaje de compatibilidad con errores del backend anterior.
+
+No se ejecutaron pruebas, typecheck, builds ni revisión de navegador. La migración no se aplicó al proyecto remoto; queda pendiente ejecutarla en Supabase SQL Editor después de las anteriores.

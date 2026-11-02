@@ -16,7 +16,7 @@ Abrir http://localhost:3000. Los únicos valores públicos son `NEXT_PUBLIC_SUPA
 
 ## Activación de Supabase (pendiente en el proyecto remoto)
 
-1. En el proyecto `odthdpmmqzdzwqwggeuv`, abrir **SQL Editor** y ejecutar **una sola vez** las migraciones en orden: `202610260001_initial.sql`, `202610260002_feedback.sql`, `202610270001_surveys.sql`, `202610270002_survey_builder_v2.sql` y `202610270003_portal_admin.sql`, desde `supabase/migrations/`. Ejecuta únicamente las migraciones que todavía no hayas aplicado. Cada migración es transaccional. Crean tablas, políticas, funciones, fotos privadas de empleados y logos públicos de restaurantes. No modifica usuarios existentes.
+1. En el proyecto `odthdpmmqzdzwqwggeuv`, abrir **SQL Editor** y ejecutar **una sola vez** las migraciones en orden: `202610260001_initial.sql`, `202610260002_feedback.sql`, `202610270001_surveys.sql`, `202610270002_survey_builder_v2.sql`, `202610270003_portal_admin.sql` y `202611020001_unlimited_restaurants.sql`, desde `supabase/migrations/`. Ejecuta únicamente las migraciones que todavía no hayas aplicado. Cada migración es transaccional. Crean tablas, políticas, funciones, fotos privadas de empleados y logos públicos de restaurantes. No modifica usuarios existentes.
 2. En **Authentication → Providers → Email**, mantener registro por correo y confirmación de correo habilitados. Contraseña mínima: al menos 8 caracteres.
 3. En **Authentication → URL Configuration**, configurar:
    - Site URL: `https://comentame.vercel.app`
@@ -60,19 +60,13 @@ El repositorio local todavía no tiene remoto configurado. Para desplegar la mig
 
 Siguen pendientes el portal admin, el chat de soporte y los cobros. La nueva migración está preparada localmente y no fue ejecutada en el proyecto remoto con la clave pública.
 
-## Autorización de restaurantes adicionales
+## Varios restaurantes por cuenta
 
-Cada usuario tiene un restaurante por defecto. No puede insertar restaurantes ni modificar el límite directamente. `create_restaurant` comprueba el usuario, los datos y el límite bajo un bloqueo transaccional por cuenta.
+Tras aplicar la migración indicada abajo, el límite por cuenta queda deshabilitado temporalmente. Cada administrador puede agregar restaurantes desde **Mi restaurante → Agregar restaurante**, sin autorización previa del portal.
 
-Hasta construir el portal admin, el operador autorizado puede aumentar el cupo desde SQL Editor:
+Aplicar `supabase/migrations/202611020001_unlimited_restaurants.sql` después de las migraciones anteriores. Actualiza la función de creación que utilizan las tres firmas existentes; conserva autenticación, perfil requerido, validación y propietario asignado por `auth.uid()`. No modifica restaurantes existentes ni amplía las políticas RLS de otras cuentas.
 
-```sql
-insert into private.restaurant_limits(owner_id, max_restaurants)
-values ('UUID-DEL-ADMINISTRADOR', 2)
-on conflict (owner_id) do update set max_restaurants = excluded.max_restaurants;
-```
-
-El usuario podrá usar **Mi restaurante → Agregar restaurante autorizado**. Este formulario no envía una solicitud de aprobación; solo crea si el cupo ya fue autorizado. Los identificadores de restaurantes/empleados no cambian al editar nombres.
+La tabla privada `restaurant_limits` se conserva para una posible política futura, pero la creación de restaurantes ya no consulta sus valores. Esta migración debe aplicarse en Supabase para retirar el límite real del backend.
 
 ## Verificación
 
@@ -97,7 +91,7 @@ El build usa Webpack por compatibilidad con este entorno; mantiene App Router y 
 
 ## Actualización de feedback: Google Maps y calificación fija
 
-Si ya aplicaste la migración inicial, ejecuta **solo** `supabase/migrations/202610260002_feedback.sql` en Supabase SQL Editor. Para instalaciones nuevas, aplica las cinco migraciones en orden, incluida la actualización de encuestas indicada abajo. No vuelvas a ejecutar la inicial sobre una base existente.
+Si ya aplicaste la migración inicial, ejecuta **solo** `supabase/migrations/202610260002_feedback.sql` en Supabase SQL Editor. Para instalaciones nuevas, aplica las seis migraciones en orden, incluida la actualización de encuestas indicada abajo. No vuelvas a ejecutar la inicial sobre una base existente.
 
 La actualización agrega `google_maps_url` opcional, conserva el cupo y aislamiento de restaurantes, y antepone la pregunta fija de 1–5 estrellas a los borradores existentes sin borrar sus preguntas. Se admiten hasta 20 preguntas adicionales a la calificación. La interfaz de borrador normaliza líneas vacías en las opciones antes de validar/guardar.
 
