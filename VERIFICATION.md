@@ -66,3 +66,10 @@ En Opiniones, el contador se colocó junto al título Las voces de tus comensale
 Se preparó `202611020001_unlimited_restaurants.sql`, que elimina la comprobación de cupo de la función de creación compartida por las tres firmas existentes. Se mantienen autenticación, perfil requerido, propietario asignado por sesión y restricciones existentes. Se actualizaron el botón, la descripción y el mensaje de compatibilidad con errores del backend anterior.
 
 No se ejecutaron pruebas, typecheck, builds ni revisión de navegador. La migración no se aplicó al proyecto remoto; queda pendiente ejecutarla en Supabase SQL Editor después de las anteriores.
+
+
+## Identificación del empleado en la encuesta pública — 2 de noviembre de 2026
+
+Se agregó una etiqueta azul suave Te atendió: [nombre] en la introducción de la encuesta. El nombre de pila proviene de la misma función pública de consulta y corresponde al empleado activo del enlace. Se preparó `202611020002_survey_employee_name.sql`; no se aplicó al proyecto remoto. Las respuestas y el cálculo de atribución no se modificaron.
+
+No se ejecutaron tests, typecheck, builds ni revisión de navegador por instrucción del propietario. No se hizo commit ni push de estos cambios.

@@ -16,7 +16,7 @@ Abrir http://localhost:3000. Los únicos valores públicos son `NEXT_PUBLIC_SUPA
 
 ## Activación de Supabase (pendiente en el proyecto remoto)
 
-1. En el proyecto `odthdpmmqzdzwqwggeuv`, abrir **SQL Editor** y ejecutar **una sola vez** las migraciones en orden: `202610260001_initial.sql`, `202610260002_feedback.sql`, `202610270001_surveys.sql`, `202610270002_survey_builder_v2.sql`, `202610270003_portal_admin.sql` y `202611020001_unlimited_restaurants.sql`, desde `supabase/migrations/`. Ejecuta únicamente las migraciones que todavía no hayas aplicado. Cada migración es transaccional. Crean tablas, políticas, funciones, fotos privadas de empleados y logos públicos de restaurantes. No modifica usuarios existentes.
+1. En el proyecto `odthdpmmqzdzwqwggeuv`, abrir **SQL Editor** y ejecutar **una sola vez** las migraciones en orden: `202610260001_initial.sql`, `202610260002_feedback.sql`, `202610270001_surveys.sql`, `202610270002_survey_builder_v2.sql`, `202610270003_portal_admin.sql`, `202611020001_unlimited_restaurants.sql` y `202611020002_survey_employee_name.sql`, desde `supabase/migrations/`. Ejecuta únicamente las migraciones que todavía no hayas aplicado. Cada migración es transaccional. Crean tablas, políticas, funciones, fotos privadas de empleados y logos públicos de restaurantes. No modifica usuarios existentes.
 2. En **Authentication → Providers → Email**, mantener registro por correo y confirmación de correo habilitados. Contraseña mínima: al menos 8 caracteres.
 3. En **Authentication → URL Configuration**, configurar:
    - Site URL: `https://comentame.vercel.app`
@@ -91,7 +91,7 @@ El build usa Webpack por compatibilidad con este entorno; mantiene App Router y 
 
 ## Actualización de feedback: Google Maps y calificación fija
 
-Si ya aplicaste la migración inicial, ejecuta **solo** `supabase/migrations/202610260002_feedback.sql` en Supabase SQL Editor. Para instalaciones nuevas, aplica las seis migraciones en orden, incluida la actualización de encuestas indicada abajo. No vuelvas a ejecutar la inicial sobre una base existente.
+Si ya aplicaste la migración inicial, ejecuta **solo** `supabase/migrations/202610260002_feedback.sql` en Supabase SQL Editor. Para instalaciones nuevas, aplica las siete migraciones en orden, incluida la actualización de encuestas indicada abajo. No vuelvas a ejecutar la inicial sobre una base existente.
 
 La actualización agrega `google_maps_url` opcional, conserva el cupo y aislamiento de restaurantes, y antepone la pregunta fija de 1–5 estrellas a los borradores existentes sin borrar sus preguntas. Se admiten hasta 20 preguntas adicionales a la calificación. La interfaz de borrador normaliza líneas vacías en las opciones antes de validar/guardar.
 
@@ -154,3 +154,10 @@ No se necesita ninguna variable adicional ni clave `service_role`. Para tarjetas
 Se permite copiar enlaces de empleados activos antes de publicar para preparar las tarjetas, mostrando Encuesta sin publicar. El formulario público recibirá respuestas cuando se publique la encuesta. Los archivados aparecen al elegir Todos o Archivados y tienen el enlace desactivado. Si el portapapeles falla, se muestra el enlace para copiarlo manualmente.
 
 Esta primera versión del portal es de lectura y copia de enlaces. No incluye altas/ediciones de empleados, cambios de encuestas, aprobación de restaurantes ni chat. La migración y el alta manual del administrador quedan pendientes de aplicar en Supabase. No se ejecutaron tests, typecheck, build ni revisión de navegador durante esta implementación.
+
+
+## Nombre del empleado en la encuesta pública
+
+Aplicar `supabase/migrations/202611020002_survey_employee_name.sql` después de las anteriores. La función pública de consulta agrega `employee_name` con el nombre de pila del empleado identificado por el enlace. Se mantienen los controles de restaurante, empleado activo y encuesta publicada. No se exponen apellidos, contactos ni fotografías en esta consulta.
+
+La encuesta muestra Te atendió: [nombre] debajo del mensaje de bienvenida, en una etiqueta azul suave independiente del color de botones configurado. Se omite si el nombre no está disponible, incluidas las vistas previas sin un enlace de empleado; no se inventa un nombre de ejemplo. El envío y la atribución de respuestas siguen usando los mismos identificadores y validaciones del servidor.

@@ -1,2 +1,2 @@
 import { LoadingIndicator } from '@/components/loading-indicator';
-export default function Loading() {return <main id="main"><LoadingIndicator dashboard/></main>;}
+export default function Loading() {return <><header className="app-header dashboard-header"><span className="wordmark">comenta.me</span></header><div className="workspace"><aside className="app-sidebar dashboard-skeleton" aria-hidden="true"><div className="skeleton-line skeleton-title"/>{Array.from({length:6},(_,index)=><div key={index} className="skeleton-line"/>)}</aside><main id="main" className="dashboard-main"><LoadingIndicator dashboard/></main></div></>;}

@@ -2,7 +2,7 @@
 import { useId,useRef,useState } from 'react';
 import Link from 'next/link';
 import { normalizeTheme,backgroundUrl,themeTokens,type SurveyTheme } from '@/lib/survey-theme';
-import { Check,ExternalLink,Music2 } from 'lucide-react';
+import { Check,ExternalLink,Music2,UserRound } from 'lucide-react';
 import { InstagramIcon,FacebookIcon,YoutubeIcon } from './social-icons';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -21,6 +21,7 @@ export function CustomerSurvey({branding,title,questions,context,preview=false,t
  const [answers,setAnswers]=useState<Answers>({}),[sent,setSent]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const pending=useRef(false),submissionId=useRef<string|null>(null),form=useRef<HTMLFormElement>(null);
  const logo=logoUrl(branding.logo_path),prefix=useId();
+ const employeeName=context?.employee_name?.trim();
  const appearance=normalizeTheme(theme),image=backgroundUrl(appearance.backgroundImagePath);
  const style={...themeTokens(appearance),backgroundColor:appearance.backgroundColor,backgroundImage:image?`url("${image}")`:undefined} as React.CSSProperties;
  function update(id:string,value:string|string[]){setAnswers(current=>({...current,[id]:value}));setError('');}
@@ -43,7 +44,7 @@ export function CustomerSurvey({branding,title,questions,context,preview=false,t
   finally{clearTimeout(timeout);pending.current=false;setBusy(false);}
  }
  return <div className={`survey-experience ${image?'has-background-image':''}`} style={style}><div className="customer-survey"><header className="survey-brand">{logo?<img src={logo} alt={`Logo de ${branding.name}`} width={180} height={90}/>:<span>{branding.name||'Tu restaurante'}</span>}</header>
-  {sent?<section className="survey-thanks" role="status"><div className="survey-success"><Check size={32}/></div><h1>¡Gracias por compartir tu experiencia!</h1><p>Tu opinión ayuda a {branding.name} a mejorar cada día.</p>{preview&&<p className="alert">Vista previa: no se guardó ninguna respuesta.</p>}{branding.google_maps_url&&!preview&&<div className="google-invitation"><h2>¿Quieres compartirla también en Google?</h2><p>Es opcional y nos ayuda a que más personas nos conozcan.</p><Button asChild><a href={branding.google_maps_url} target="_blank" rel="noopener noreferrer">Dejar una reseña en Google <ExternalLink size={15}/></a></Button><small>Se abrirá la ficha del restaurante en Google.</small></div>}<Button type="button" variant="ghost" onClick={reset}>{preview?'Volver a probar la encuesta':'Dejar otra opinión'}</Button></section>:<><div className="survey-intro"><h1>{title||'Tu opinión nos ayuda a mejorar'}</h1><p>Nos gustaría conocer tu experiencia.</p></div><form ref={form} className="customer-form" onSubmit={submit}>
+  {sent?<section className="survey-thanks" role="status"><div className="survey-success"><Check size={32}/></div><h1>¡Gracias por compartir tu experiencia!</h1><p>Tu opinión ayuda a {branding.name} a mejorar cada día.</p>{preview&&<p className="alert">Vista previa: no se guardó ninguna respuesta.</p>}{branding.google_maps_url&&!preview&&<div className="google-invitation"><h2>¿Quieres compartirla también en Google?</h2><p>Es opcional y nos ayuda a que más personas nos conozcan.</p><Button asChild><a href={branding.google_maps_url} target="_blank" rel="noopener noreferrer">Dejar una reseña en Google <ExternalLink size={15}/></a></Button><small>Se abrirá la ficha del restaurante en Google.</small></div>}<Button type="button" variant="ghost" onClick={reset}>{preview?'Volver a probar la encuesta':'Dejar otra opinión'}</Button></section>:<><div className="survey-intro"><h1>{title||'Tu opinión nos ayuda a mejorar'}</h1><p>Nos gustaría conocer tu experiencia.</p>{employeeName&&<div className="survey-attendant"><UserRound size={17} aria-hidden="true"/><span>Te atendió: <strong>{employeeName}</strong></span></div>}</div><form ref={form} className="customer-form" onSubmit={submit}>
    <fieldset className="customer-rating"><legend>¿Cómo estuvo tu experiencia? <span aria-hidden="true">*</span></legend><div className="customer-stars" role="group" aria-label="Calificación obligatoria de 1 a 5 estrellas">{[1,2,3,4,5].map(n=><button key={n} type="button" disabled={busy} className={n<=rating?'chosen':''} aria-label={`${n} ${n===1?'estrella':'estrellas'}`} aria-pressed={rating===n} onClick={()=>{setRating(n);setError('');}}>★</button>)}</div><span className="rating-description">{rating?['','Muy mala','Mala','Regular','Buena','Excelente'][rating]:'Elige tu calificación'}</span></fieldset>
    <label className="field" htmlFor={`${prefix}-guest-name`}>Tu nombre <span aria-hidden="true">*</span><Input id={`${prefix}-guest-name`} autoComplete="name" required maxLength={150} value={name} disabled={busy} onChange={e=>setName(e.target.value)}/></label>
    <label className="field" htmlFor={`${prefix}-guest-contact`}>Correo o teléfono (opcional)<Input id={`${prefix}-guest-contact`} autoComplete="off" maxLength={254} value={contact} disabled={busy} onChange={e=>setContact(e.target.value)} placeholder="Por si el restaurante necesita contactarte"/></label>

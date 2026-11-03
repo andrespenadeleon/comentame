@@ -17,7 +17,7 @@ export const workspace = cache(async () => {
   const {db,user} = await requireUser();
   const [p,r] = await Promise.all([
     db.from('profiles').select('id,full_name,phone,onboarding_completed').eq('id',user.id).maybeSingle(),
-    db.from('restaurants').select('*').eq('owner_id',user.id).order('created_at'),
+    db.from('restaurants').select('id,owner_id,name,address,phone,google_maps_url,logo_path,social_links,active_survey_id').eq('owner_id',user.id).order('created_at'),
   ]);
   if(p.error || r.error) throw new Error('WORKSPACE_SETUP_PENDING');
   return {db,user,profile:p.data as Profile|null,restaurants:(r.data || []).map(({id,owner_id,name,address,phone,google_maps_url,logo_path,social_links,active_survey_id})=>({id,owner_id,name,address,phone,google_maps_url,logo_path,social_links,active_survey_id})) as Restaurant[]};

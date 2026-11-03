@@ -16,14 +16,14 @@ export function AuthForm({mode,notice}:{mode:keyof typeof copy;notice?:string}) 
   const [state,action,pending]=useActionState<AuthState,FormData>(authenticate.bind(null,mode),{});
   const [dismissed,setDismissed]=useState<AuthState|null>(null);
   const c=copy[mode];
-  return <section className="auth-card"><span className="eyebrow">TU RESTAURANTE, MÁS CERCA DE SUS CLIENTES</span><h1>{c.title}</h1><p className="muted">{c.description}</p>{mode==='signup'&&state.success&&dismissed!==state&&<VerificationDialog email={state.email} onClose={()=>setDismissed(state)}/>}<form action={action}>
+  return <section className="auth-card"><span className="eyebrow">TU RESTAURANTE, MÁS CERCA DE SUS CLIENTES</span><h1>{c.title}</h1><p className="muted">{c.description}</p>{mode==='signup'&&state.success&&dismissed!==state&&<VerificationDialog email={state.email} onClose={()=>setDismissed(state)}/>}<form action={action} aria-busy={pending}>
     {notice && <p className="alert" role="status">{notice}</p>}
     {state.error && <p className="alert alert-error" role="alert">{state.error}</p>}
     {state.success && <p className="alert" role="status">{state.success}</p>}
     {mode!=='reset' && <label className="field" htmlFor="email">Correo electrónico<Input id="email" name="email" type="email" autoComplete="email" required maxLength={254} defaultValue={state.email} placeholder="tu@restaurante.com" /></label>}
     {(mode==='login'||mode==='signup'||mode==='reset') && <label className="field" htmlFor="password">Contraseña<Input id="password" name="password" type="password" autoComplete={mode==='login'?'current-password':'new-password'} minLength={mode==='login'?1:8} maxLength={128} required placeholder={mode==='login'?'Tu contraseña':'Al menos 8 caracteres'}/></label>}
     {mode==='login' && <Link href="/recuperar" className="text-link">Olvidé mi contraseña</Link>}
-    <Button type="submit" disabled={pending} aria-busy={pending}>{pending?'Un momento…':c.button}<span aria-hidden="true">↗</span></Button>
+    <Button type="submit" disabled={pending} aria-busy={pending}>{pending?<><span className="loading-spinner button-spinner" aria-hidden="true"/>{mode==='login'?'Iniciando sesión…':'Un momento…'}</>:<>{c.button}<span aria-hidden="true">↗</span></>}</Button>{pending&&<p className="auth-pending-message muted" role="status">{mode==='login'?'Preparando tu espacio…':'Procesando tu solicitud…'}</p>}
   </form>
   <div className="auth-bottom">{mode==='login'?<>¿Aún no tienes cuenta? <Link className="text-link" href="/registro">Regístrate</Link></>:mode==='signup'?<>¿Ya tienes cuenta? <Link className="text-link" href="/login">Inicia sesión</Link></>:<Link className="text-link" href="/login">Volver a iniciar sesión</Link>}</div>
   {mode==='login' && <p className="auth-bottom"><Link className="text-link" href="/login?confirmar=1">Reenviar confirmación de correo</Link></p>}

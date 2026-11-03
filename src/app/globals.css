@@ -45,3 +45,14 @@
 .published-survey-state>.published-preview-cta{width:min(100%,380px);min-height:58px;padding:17px 25px;background:#2563eb;border-color:#2563eb;border-radius:10px;font-size:15px;font-weight:700;box-shadow:0 5px 15px #2563eb21}.published-survey-state>.published-preview-cta:hover{background:#1d4ed8;border-color:#1d4ed8}.published-survey-state>.published-edit-action{margin-top:0;min-width:180px;box-shadow:none}.opinions-card-head{align-items:center;gap:16px}.opinions-title-group{flex:1;min-width:0;line-height:1.6}.opinions-title-group h2{display:inline;vertical-align:middle;line-height:1.4}.opinions-title-group>.pill{margin-left:10px;vertical-align:middle;white-space:nowrap}.opinions-card-head .opinion-filters-toolbar{margin:0;flex-shrink:0;align-self:flex-start}.opinions-card-head .opinion-filter-trigger{margin:0}
 @media(max-width:767px){.published-survey-state>.published-preview-cta{width:100%;font-size:14px;min-height:58px;padding:16px}.published-survey-state>.published-edit-action{width:100%;min-height:46px}.opinions-card-head{gap:12px;align-items:flex-start}.opinions-title-group h2{font-size:20px}.opinions-title-group>.pill{margin-left:8px;font-size:9px}.opinions-card-head .opinion-filters-toolbar{padding:0}}
 @media(max-width:767px){.opinions-card-head .opinion-filters-dropdown{width:min(420px,calc(100vw - 68px))}}
+/* Employee identified by the survey link; soft blue independent of theme accent. */
+.survey-attendant{display:inline-flex;align-items:center;gap:8px;max-width:100%;margin-top:20px;padding:8px 14px;border:1px solid #d6e3fb;border-radius:999px;background:#edf3ff;color:#365c9c;font-size:13px;line-height:1.5;text-align:left}.survey-attendant>svg{flex-shrink:0;color:#5276ae}.survey-attendant>span{min-width:0;overflow-wrap:anywhere}.survey-attendant strong{font-weight:700;color:#244c89}
+@media(max-width:767px){.survey-attendant{font-size:12px;padding:8px 12px;margin-top:18px}}
+
+/* Immediate session feedback and the dashboard's initial shell. */
+.button .button-spinner{width:17px;height:17px;flex-shrink:0;border-width:2px;margin:0;border-color:currentColor;border-right-color:transparent}
+.auth-pending-message{text-align:center;font-size:12px}
+.session-loading{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(255,255,255,.94);color:#606575;font-size:14px}
+.skeleton-line{height:40px;border-radius:7px;background:#f0f2f6;margin-bottom:12px}
+.skeleton-title{height:20px;width:70%;margin-bottom:36px}
+.dashboard-skeleton{pointer-events:none}
