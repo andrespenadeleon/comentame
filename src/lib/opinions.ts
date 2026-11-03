@@ -3,7 +3,7 @@ import type { createClient } from './supabase/server';
 import type { Answers } from './survey-types';
 import type { Question } from './validation';
 export type Opinion={id:string;restaurant_id:string;employee_id:string;restaurant_name:string;employee_name:string;guest_name:string;guest_contact:string|null;rating:number;answers:Answers;submitted_at:string;survey_version_id:string};
-export type OpinionParams={section?:string;restaurant?:string;period?:string;rating?:string;employee?:string;page?:string;detail?:string};
+export type OpinionParams={section?:string;restaurant?:string;period?:string;rating?:string;employee?:string;page?:string;detail?:string;tab?:string;scope?:string};
 type DB=Awaited<ReturnType<typeof createClient>>;
 export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionParams){
  const restaurant=restaurantIds.includes(params.restaurant||'')?params.restaurant:null;
@@ -19,14 +19,19 @@ export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionPa
  if(employee)query=query.eq('employee_id',employee);
  if(rating)query=query.eq('rating',rating);
  if(from)query=query.gte('submitted_at',from);
- const [list,summary]=await Promise.all([query.order('submitted_at',{ascending:false}).order('id').range((page-1)*20,page*20-1),db.rpc('opinions_summary',{p_restaurant_id:restaurant,p_employee_id:employee,p_rating:rating,p_from:from})]);
+ const [list,summary,metrics]=await Promise.all([query.order('submitted_at',{ascending:false}).order('id').range((page-1)*20,page*20-1),db.rpc('opinions_summary',{p_restaurant_id:restaurant,p_employee_id:employee,p_rating:rating,p_from:from}),db.rpc('survey_visit_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from,p_rating:rating})]);
  if(list.error||summary.error)throw new Error('No pudimos cargar las opiniones. Verifica que la migración de encuestas esté aplicada.');
  let detail:Opinion|null=null,version:{title:string;version:number;questions:Question[]}|null=null;
  if(params.detail&&/^[a-f0-9-]{36}$/i.test(params.detail)){
-  const result=await db.from('survey_responses').select('*').eq('id',params.detail).in('restaurant_id',restaurantIds).maybeSingle();
+  let detailQuery=db.from('survey_responses').select('*').eq('id',params.detail).in('restaurant_id',restaurantIds);
+  if(restaurant)detailQuery=detailQuery.eq('restaurant_id',restaurant);
+  const result=await detailQuery.maybeSingle();
   if(result.error)throw new Error('No pudimos cargar el detalle de la opinión.');
   detail=result.data as Opinion|null;
   if(detail){const result=await db.from('survey_versions').select('title,version,questions').eq('id',detail.survey_version_id).maybeSingle();if(result.error)throw new Error('No pudimos cargar las preguntas originales.');version=result.data;}
  }
- return {opinions:(list.data||[]) as Opinion[],count:list.count||0,summary:summary.data as {total:number;average:number|null;distribution:Record<string,number>},staff:staff||[],restaurant,period,rating,employee,page,detail,version};
+ if(metrics.error&&!['PGRST202','42883'].includes(metrics.error.code))throw new Error('No pudimos cargar las visitas.');
+ return {metrics:metrics.error?null:metrics.data as VisitMetrics,opinions:(list.data||[]) as Opinion[],count:list.count||0,summary:summary.data as {total:number;average:number|null;distribution:Record<string,number>},staff:staff||[],restaurant,period,rating,employee,page,detail,version};
 }
+
+export type VisitMetrics={visits:number;employees:{id:string;restaurant_id:string;name:string;restaurant_name:string;archived:boolean;visits:number;responses:number;average:number|null}[]};
