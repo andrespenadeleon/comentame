@@ -1,0 +1,14 @@
+import type { EngagementMetrics,EngagementEmployee } from '@/lib/opinions';
+export function duration(seconds:number|null|undefined){if(seconds==null)return '—';const value=Math.round(seconds);return value<60?`${value} s`:`${Math.floor(value/60)} min ${value%60} s`;}
+function rate(value:number,total:number){return total?`${Math.round(value/total*100)}%`:'—';}
+export function EngagementMetricsPanel({data,ratingFiltered,showQuestions=true}:{data:EngagementMetrics|null;ratingFiltered:boolean;showQuestions?:boolean}){
+ if(!data)return <p className="alert">El tiempo y la participación estarán disponibles al activar la actualización de tracking.</p>;
+ return <section className="card engagement-panel"><header><h2>De la visita a la opinión</h2><p className="muted">Solo aperturas con el nuevo tracking. {ratingFiltered?'Estos indicadores no se filtran por estrellas.':''}</p></header><div className="engagement-stats"><article><span>Empezaron</span><strong>{data.starts}</strong><small>{rate(data.starts,data.visits)} de {data.visits} aperturas medidas</small></article><article><span>Completadas</span><strong>{data.completions}</strong><small>{rate(data.completions,data.starts)} de los inicios</small></article><article><span>Iniciadas sin envío</span><strong>{data.unfinished}</strong><small>Pueden seguir contestando</small></article><article><span>Tiempo activo promedio</span><strong>{duration(data.average_seconds)}</strong><small>Completadas: {duration(data.completed_seconds)} · Sin envío: {duration(data.incomplete_seconds)}</small></article></div><p className="analytics-note muted">El tiempo se pausa al ocultar la pestaña y termina al enviar. El último intervalo puede perderse al cerrar el navegador. No son personas únicas.</p>{showQuestions&&<>
+<h3>Participación por pregunta</h3><p className="muted">“Con respuesta” indica que el campo tenía contenido en el último reporte; no se guarda ese contenido hasta enviar.</p>{data.fields.length?<ul className="question-engagement">{data.fields.map(field=><li key={`${field.version_id}:${field.key}`}><div><strong>{field.label}</strong><small>{field.restaurant_name} · Encuesta v{field.version}</small></div><div><span>Interactuaron</span><strong>{field.touched}</strong></div><div><span>Con respuesta</span><strong>{field.answered} / {field.visits}</strong><small>{rate(field.answered,field.visits)}</small></div></li>)}</ul>:<p className="empty muted">Los datos aparecerán cuando tus comensales abran la encuesta.</p>}
+ </>}
+ </section>;
+}
+export function EmployeeEngagement({data}:{data?:EngagementEmployee}){
+ if(!data)return null;
+ return <p className="employee-engagement">{data.starts} inicios ({rate(data.starts,data.visits)}) · {data.completions} completadas ({rate(data.completions,data.starts)}) · {data.unfinished} sin envío · {duration(data.average_seconds)} de tiempo activo promedio</p>;
+}

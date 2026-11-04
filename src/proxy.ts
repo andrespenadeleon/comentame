@@ -11,6 +11,16 @@ export async function proxy(request: NextRequest) {
   });
   // Refresh and validate the token; authorization is repeated in the data layer and RLS.
   const {data:{user}} = await supabase.auth.getUser();
+  const authEntry = ['/login','/registro'].includes(request.nextUrl.pathname);
+  if (authEntry && user?.email_confirmed_at && ['GET','HEAD'].includes(request.method)) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    url.search = '';
+    const redirect = NextResponse.redirect(url);
+    response.cookies.getAll().forEach(cookie => redirect.cookies.set(cookie));
+    redirect.headers.set('Cache-Control','private, no-store');
+    return redirect;
+  }
   const protectedPath = ['/admin','/dashboard','/onboarding','/restablecer'].some(path => request.nextUrl.pathname === path || request.nextUrl.pathname.startsWith(path + '/'));
   if (protectedPath && (!user || !user.email_confirmed_at)) {
     const url = request.nextUrl.clone();

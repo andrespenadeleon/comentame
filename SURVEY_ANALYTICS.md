@@ -21,3 +21,17 @@ El selector del sidebar reemplaza los botones horizontales. Usa logo o iniciales
 La URL es la fuente de verdad para el restaurante explícito. La cookie `cm_restaurant` conserva la última selección como preferencia; nunca concede permisos. El servidor valida la selección contra los restaurantes del usuario en cada render y elige uno autorizado si el ID guardado o recibido ya no está disponible. Al cambiar de restaurante se conserva sección/periodo/pestaña y se eliminan empleado, calificación, página, detalle y alcance consolidado. El contenido anterior se oculta mientras cambia para evitar mostrar datos viejos como actuales.
 
 No se ejecutaron tests, typecheck, build ni QA de navegador, conforme a la indicación del usuario. No se aplicaron migraciones remotas ni se hizo commit/push.
+
+## Tiempo activo e inicio de encuesta
+
+Aplicar `supabase/migrations/202611030002_survey_engagement.sql` después de la migración de visitas. No se ha aplicado remotamente. No se ejecutaron tests, typecheck ni builds.
+
+Cada apertura usa el mismo UUID para visitas y participación. El primer cambio de un input marca el inicio, incluso si después se borra. Se guarda un acumulado de tiempo visible cada 15 segundos y al ocultar/salir mediante Beacon o keepalive. Al regresar continúa; al guardar una respuesta termina. El tiempo no identifica atención humana: una pestaña visible sin interacción sigue contando. Los saltos de reloj/suspensión se limitan a 30 segundos por intervalo y el total a 24 horas. Los últimos segundos pueden perderse si el navegador termina sin reportar.
+
+Solo se reportan identificadores de campos tocados y de campos con contenido; nunca texto, contacto ni respuestas parciales. La secuencia de eventos protege el último estado frente a peticiones fuera de orden; tiempo y campos tocados son acumulativos. La finalización se registra en la misma transacción que la respuesta validada, vinculada por response_id, y los eventos tardíos no la revierten. Dejar otra opinión recarga para crear una apertura nueva. Las vistas previas no registran nada.
+
+El embudo, los tiempos y el desglose por pregunta usan exclusivamente visitas con el nuevo tracking. Los registros anteriores no se incluyen. Se agrupa cada pregunta por restaurante y versión original para no mezclar cambios de preguntas. El periodo corresponde a la apertura de la sesión. Las estrellas solo filtran opiniones, no el embudo. Iniciadas sin envío es un estado actual, no abandono definitivo.
+
+El endpoint de reporte es público para permitir encuestas sin login: el UUID aleatorio actúa como identificador de la apertura y no se expone públicamente. Se validan vínculos, campos permitidos, tamaños y rangos en servidor/SQL. Son métricas aproximadas del navegador, no un mecanismo antifraude. Los envíos y el conteo básico de visitas siguen funcionando durante el despliegue si falta la nueva migración.
+
+El portal admin también presenta el embudo, tiempos y participación por empleado, respetando búsqueda, restaurante y estado del directorio. Las consultas de administración siguen detrás de la comprobación explícita de portal_admin.

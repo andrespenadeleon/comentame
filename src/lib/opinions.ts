@@ -19,7 +19,7 @@ export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionPa
  if(employee)query=query.eq('employee_id',employee);
  if(rating)query=query.eq('rating',rating);
  if(from)query=query.gte('submitted_at',from);
- const [list,summary,metrics]=await Promise.all([query.order('submitted_at',{ascending:false}).order('id').range((page-1)*20,page*20-1),db.rpc('opinions_summary',{p_restaurant_id:restaurant,p_employee_id:employee,p_rating:rating,p_from:from}),db.rpc('survey_visit_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from,p_rating:rating})]);
+ const [list,summary,metrics,engagement]=await Promise.all([query.order('submitted_at',{ascending:false}).order('id').range((page-1)*20,page*20-1),db.rpc('opinions_summary',{p_restaurant_id:restaurant,p_employee_id:employee,p_rating:rating,p_from:from}),db.rpc('survey_visit_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from,p_rating:rating}),db.rpc('survey_engagement_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from})]);
  if(list.error||summary.error)throw new Error('No pudimos cargar las opiniones. Verifica que la migración de encuestas esté aplicada.');
  let detail:Opinion|null=null,version:{title:string;version:number;questions:Question[]}|null=null;
  if(params.detail&&/^[a-f0-9-]{36}$/i.test(params.detail)){
@@ -31,7 +31,12 @@ export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionPa
   if(detail){const result=await db.from('survey_versions').select('title,version,questions').eq('id',detail.survey_version_id).maybeSingle();if(result.error)throw new Error('No pudimos cargar las preguntas originales.');version=result.data;}
  }
  if(metrics.error&&!['PGRST202','42883'].includes(metrics.error.code))throw new Error('No pudimos cargar las visitas.');
- return {metrics:metrics.error?null:metrics.data as VisitMetrics,opinions:(list.data||[]) as Opinion[],count:list.count||0,summary:summary.data as {total:number;average:number|null;distribution:Record<string,number>},staff:staff||[],restaurant,period,rating,employee,page,detail,version};
+ if(engagement.error&&!['PGRST202','42883'].includes(engagement.error.code))throw new Error('No pudimos cargar la participación.');
+ return {engagement:engagement.error?null:engagement.data as EngagementMetrics,metrics:metrics.error?null:metrics.data as VisitMetrics,opinions:(list.data||[]) as Opinion[],count:list.count||0,summary:summary.data as {total:number;average:number|null;distribution:Record<string,number>},staff:staff||[],restaurant,period,rating,employee,page,detail,version};
 }
 
 export type VisitMetrics={visits:number;employees:{id:string;restaurant_id:string;name:string;restaurant_name:string;archived:boolean;visits:number;responses:number;average:number|null}[]};
+
+export type EngagementSummary={visits:number;starts:number;completions:number;unfinished:number;average_seconds:number|null;completed_seconds?:number|null;incomplete_seconds?:number|null};
+export type EngagementEmployee=EngagementSummary&{employee_id:string};
+export type EngagementMetrics=EngagementSummary&{employees:EngagementEmployee[];fields:{restaurant_id:string;restaurant_name:string;version_id:string;version:number;key:string;label:string;visits:number;touched:number;answered:number}[]};
