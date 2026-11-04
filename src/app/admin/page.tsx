@@ -1,27 +1,50 @@
 import Link from 'next/link';
-import { EngagementMetricsPanel } from '@/components/engagement-metrics';
+import { cookies } from 'next/headers';
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
-import { Link2,Search,ShieldCheck,Users } from 'lucide-react';
-import { portalDirectory,portalHref,type DirectoryParams } from '@/lib/portal-admin';
-import { surveyPath } from '@/lib/validation';
+import { DashboardShell } from '@/components/dashboard-shell';
+import { LoadingIndicator } from '@/components/loading-indicator';
 import { AppHeader } from '@/components/app-header';
-import { PortalEmployeeRow } from '@/components/portal-employee-row';
+import { Opinions,OpinionMetrics,OpinionList } from '@/components/opinions';
+import { PortalEmployeeList } from '@/components/portal-employee-list';
+import { PortalSurveyList } from '@/components/portal-survey-list';
+import { portalWorkspace,portalOpinions,portalSurveys,descriptiveSurveyUrl } from '@/lib/portal-dashboard';
+import { portalDirectory,portalHref } from '@/lib/portal-admin';
+import type { OpinionParams } from '@/lib/opinions';
 export const dynamic='force-dynamic';
 export const metadata={title:'Portal de administración',robots:{index:false,follow:false}};
-export default async function AdminPage({searchParams}:{searchParams:Promise<DirectoryParams>}){
- const {user,filters,directory,engagement}=await portalDirectory(await searchParams);
- const employeeEngagement=new Map(engagement?.employees.map(employee=>[employee.employee_id,employee])||[]);
- const pages=Math.max(1,Math.ceil(directory.total/directory.page_size));
- if(filters.page>pages)redirect(portalHref(filters,pages));
- const origin=new URL(process.env.NEXT_PUBLIC_SITE_URL||'https://comentame.vercel.app');
- if(!['https:','http:'].includes(origin.protocol)||origin.username||origin.password)throw new Error('Configura un dominio válido para los enlaces de encuesta.');
- return <><AppHeader name={user.email}/><main id="main" className="portal-main"><div className="portal-wrap">
-  <header className="portal-page-heading"><span className="portal-admin-label"><ShieldCheck size={15} aria-hidden="true"/>PORTAL ADMIN</span><h1>Tu equipo, en todos los restaurantes.</h1><p>Encuentra a cada empleado y copia el enlace de su encuesta para asignarlo a una tarjeta NFC.</p></header>
-  <EngagementMetricsPanel data={engagement?{...engagement,fields:[]}:null} ratingFiltered={false} showQuestions={false}/><section className="metrics" aria-label="Visitas del directorio"><div className="metric"><p>Visitas a las encuestas</p><strong>{directory.visits==null?'—':directory.visits.toLocaleString('es-MX')}</strong><small>Acumulado · Según los filtros del directorio</small></div></section><section className="card portal-directory" aria-labelledby="directory-heading"><header className="card-head"><div className="portal-directory-title"><Users size={21} aria-hidden="true"/><h2 id="directory-heading">Empleados</h2></div><span className="pill">{directory.total} {directory.total===1?'empleado':'empleados'}</span></header>
-   <form action="/admin" className="portal-filters"><label className="field portal-search" htmlFor="portal-search">Buscar empleado o restaurante<div><Search size={16} aria-hidden="true"/><input className="input" id="portal-search" name="q" type="search" maxLength={150} defaultValue={filters.query} placeholder="Nombre, restaurante o puesto"/></div></label><label className="field" htmlFor="portal-restaurant">Restaurante<select className="input" id="portal-restaurant" name="restaurant" defaultValue={filters.restaurant}><option value="">Todos los restaurantes</option>{directory.restaurants.map(restaurant=><option key={restaurant.id} value={restaurant.id}>{restaurant.name}</option>)}</select></label><label className="field" htmlFor="portal-status">Empleados<select className="input" id="portal-status" name="status" defaultValue={filters.status}><option value="active">Activos</option><option value="all">Todos</option><option value="archived">Archivados</option></select></label><button type="submit" className="button">Buscar</button><Link className="text-link" href="/admin">Limpiar</Link></form>
-   <p className="portal-link-help"><Link2 size={16} aria-hidden="true"/>Puedes preparar las tarjetas antes de publicar. El enlace recibirá respuestas cuando la encuesta esté publicada; los enlaces de empleados archivados están desactivados.</p>
-   {directory.employees.length?<div className="portal-employee-list">{directory.employees.map(employee=><PortalEmployeeRow key={employee.id} employee={{...employee,engagement:employeeEngagement.get(employee.id)}} surveyUrl={employee.deleted_at?null:new URL(surveyPath(employee.restaurant_id,employee.id),origin.origin).toString()}/>)}</div>:<div className="empty portal-directory-empty"><div className="empty-icon"><Users size={24} aria-hidden="true"/></div><h3>No hay empleados para mostrar.</h3><p>{filters.query||filters.restaurant||filters.status!=='active'?'Prueba con otro nombre, restaurante o estado.':'Los empleados aparecerán aquí cuando los restaurantes registren a su equipo.'}</p>{(filters.query||filters.restaurant||filters.status!=='active')&&<Link className="text-link" href="/admin">Limpiar filtros →</Link>}</div>}
-   {pages>1&&<nav className="pagination actions" aria-label="Páginas del directorio">{filters.page>1&&<Link className="button button-outline button-sm" href={portalHref(filters,filters.page-1)}>← Anterior</Link>}<span>Página {filters.page} de {pages} · {directory.total} empleados</span>{filters.page<pages&&<Link className="button button-outline button-sm" href={portalHref(filters,filters.page+1)}>Siguiente →</Link>}</nav>}
-  </section><p className="footer-note">comenta.me · Administración del portal</p>
- </div></main></>;
+type Params=OpinionParams&{q?:string;status?:string};
+const sections=['resumen','opiniones','restaurante','equipo','encuesta','soporte'];
+export default async function AdminPage({searchParams}:{searchParams:Promise<Params>}){
+ const [space,params,jar]=await Promise.all([portalWorkspace(),searchParams,cookies()]);
+ if(space.setup)return <><AppHeader name={space.user.email}/><main id="main" className="portal-main"><section className="card stack"><h1>Actualización del portal pendiente</h1><p>Aplica la migración 202611030003_portal_readonly_dashboard.sql en Supabase para habilitar la navegación del portal.</p></section></main></>;
+ const selected=params.restaurant||jar.get('cm_portal_restaurant')?.value||'all';
+ const active=space.restaurants.find(restaurant=>restaurant.id===selected);
+ const restaurant=active?.id||'all';
+ const section=sections.includes(params.section||'')?params.section!:params.q||params.status?'equipo':'resumen';
+ const headings:Record<string,string>={resumen:'Resumen del portal',opiniones:'Opiniones y métricas',restaurante:'Restaurantes',equipo:'Tu equipo, más claro.',encuesta:'Encuestas de tus restaurantes',soporte:'Soporte'};
+ const options=[{id:'all',name:'Todos los restaurantes'},...space.restaurants];
+ return <DashboardShell portal name={space.user.email||'Portal admin'} restaurants={options} restaurantName={active?.name||'Todos los restaurantes'} restaurantId={restaurant} restaurantCount={space.restaurants.length} section={section}><div className="page-head"><span className="eyebrow">PORTAL ADMIN / {active?.name||'Todos los restaurantes'}</span><h1>{headings[section]}</h1><p className="muted">Consulta los datos de tus restaurantes. Acceso de solo lectura.</p></div><Suspense key={JSON.stringify({...params,restaurant,section})} fallback={<LoadingIndicator dashboard/>}><PortalContent section={section} params={{...params,restaurant,portal:'1'}} restaurants={space.restaurants}/></Suspense></DashboardShell>;
+}
+async function PortalContent({section,params,restaurants}:{section:string;params:Params;restaurants:Awaited<ReturnType<typeof portalWorkspace>>['restaurants']}){
+ const restaurant=params.restaurant||'all';
+ if(section==='opiniones'||section==='resumen'){
+ const data=await portalOpinions(section==='resumen'?{...params,rating:undefined,employee:undefined,detail:undefined,page:'1'}:params);
+ if(section==='opiniones')return <Opinions data={data} params={params} restaurants={restaurants} activeRestaurantId={restaurant}/>;
+ return <><form action="/admin" className="summary-period actions"><input type="hidden" name="section" value="resumen"/><input type="hidden" name="restaurant" value={restaurant}/><label className="field">Periodo<select className="input" name="period" defaultValue={data.period}><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option><option value="all">Desde el inicio</option></select></label><button className="button button-outline">Actualizar</button></form><OpinionMetrics data={data} overview showGoogleClicks/><section className="card stack"><div className="card-head"><h2>Opiniones recientes</h2><Link className="text-link" href={`/admin?section=opiniones&restaurant=${restaurant}&period=${data.period}`}>Ver métricas →</Link></div><OpinionList data={data} compact params={params}/></section></>;
+ }
+ if(section==='equipo'){
+ const {directory,filters,engagement}=await portalDirectory({q:params.q,restaurant,status:params.status,page:params.page});
+ const pages=Math.max(1,Math.ceil(directory.total/directory.page_size));if(filters.page>pages)redirect(portalHref(filters,pages));
+ const metrics=new Map(engagement?.employees.map(employee=>[employee.employee_id,employee])||[]);
+ const origin=process.env.NEXT_PUBLIC_SITE_URL||'https://comentame.vercel.app';
+ const rows=directory.employees.map(employee=>({...employee,engagement:metrics.get(employee.id),surveyUrl:employee.deleted_at?null:descriptiveSurveyUrl(origin,employee.restaurant_id,employee.id,employee.restaurant_name,`${employee.first_name} ${employee.last_name}`)}));
+ return <section className="card stack"><form action="/admin" className="portal-filters"><input type="hidden" name="section" value="equipo"/><input type="hidden" name="restaurant" value={restaurant}/><label className="field">Buscar empleado<input name="q" className="input" type="search" defaultValue={filters.query} maxLength={150} placeholder="Nombre, restaurante o puesto"/></label><label className="field">Estado<select className="input" name="status" defaultValue={filters.status}><option value="active">Activos</option><option value="archived">Archivados</option><option value="all">Todos</option></select></label><button className="button">Buscar</button><Link className="text-link" href={`/admin?section=equipo&restaurant=${restaurant}`}>Limpiar</Link></form><div className="card-head"><h2>Equipo</h2><span className="pill">{directory.total} empleados</span></div><PortalEmployeeList key={`${restaurant}:${filters.query}:${filters.status}:${filters.page}`} employees={rows}/>{!rows.length&&<p className="empty muted">No hay empleados para estos filtros.</p>}{pages>1&&<nav className="pagination actions" aria-label="Páginas de empleados">{filters.page>1&&<Link className="button button-outline" href={portalHref(filters,filters.page-1)}>← Anterior</Link>}<span>Página {filters.page} de {pages}</span>{filters.page<pages&&<Link className="button button-outline" href={portalHref(filters,filters.page+1)}>Siguiente →</Link>}</nav>}</section>;
+ }
+ if(section==='restaurante')return <div className="stack">{restaurants.filter(item=>restaurant==='all'||item.id===restaurant).map(item=><section className="card stack" key={item.id}><h2>{item.name}</h2><dl className="opinion-metadata"><dt>Dirección</dt><dd>{item.address}</dd><dt>Teléfono</dt><dd>{item.phone}</dd><dt>Encuesta</dt><dd>{item.active_survey_id?'Publicada':'Sin publicar'}</dd></dl>{item.google_maps_url&&<a className="text-link" href={item.google_maps_url} target="_blank" rel="noopener noreferrer">Ver en Google Maps ↗</a>}</section>)}{!restaurants.length&&<p className="empty muted">Aún no hay restaurantes.</p>}</div>;
+ if(section==='encuesta'){
+ const page=Math.min(100000,Math.max(1,Number.parseInt(params.page||'1',10)||1));const catalog=await portalSurveys(restaurant,page);const pages=Math.max(1,Math.ceil(catalog.total/20));if(page>pages)redirect(`/admin?section=encuesta&restaurant=${restaurant}&page=${pages}`);
+ return <div className="stack"><section className="card stack"><h2>Borradores</h2><PortalSurveyList surveys={catalog.drafts} draft/></section><section className="card stack"><h2>Publicadas e historial</h2><PortalSurveyList surveys={catalog.published}/>{pages>1&&<nav className="pagination actions" aria-label="Páginas de encuestas">{page>1&&<Link className="button button-outline" href={`/admin?section=encuesta&restaurant=${restaurant}&page=${page-1}`}>← Anterior</Link>}<span>Página {page} de {pages}</span>{page<pages&&<Link className="button button-outline" href={`/admin?section=encuesta&restaurant=${restaurant}&page=${page+1}`}>Siguiente →</Link>}</nav>}</section></div>;
+ }
+ return <section className="card empty"><span className="pill">Próximamente</span><h2>Soporte</h2><p className="muted">El chat de soporte sigue pendiente de definición.</p></section>;
 }

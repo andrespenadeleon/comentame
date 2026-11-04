@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { CompactEmployeeRow } from './compact-employee-row';
 import { useRef,useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -14,6 +15,7 @@ import { Pencil,Trash2,Users,MessageSquareText } from 'lucide-react';
 export function Employees({restaurantId,employees,restaurants=[],onboarding=false}:{restaurantId:string;employees:Employee[];restaurants?:{id:string;name:string}[];onboarding?:boolean}) {
   const router=useRouter();
   const [filter,setFilter]=useState('all');
+  const [expanded,setExpanded]=useState<string|null>(null);
   const visibleEmployees=filter==='all'?employees:employees.filter(e=>e.restaurant_id===filter);
   const [editing,setEditing]=useState<Employee|null|undefined>();
   const [deleting,setDeleting]=useState<string|null>(null);
@@ -25,12 +27,10 @@ export function Employees({restaurantId,employees,restaurants=[],onboarding=fals
     <Feedback {...result}/>
     {editing!==undefined && <div className="card"><EmployeeForm key={editing?.id||'new'} restaurantId={filter==='all'?restaurantId:filter} restaurants={restaurants} employee={editing||undefined} onSaved={savedRestaurant=>{setEditing(undefined);setResult({success:'Empleado guardado.'});if(filter!=='all')setFilter(savedRestaurant);router.refresh();}} onCancel={()=>setEditing(undefined)}/></div>}
     {!employees.length && editing===undefined && <div className="empty"><div className="empty-icon"><Users size={23} aria-hidden="true"/></div><h3>Cada mesero cuenta.</h3><p>Agrega a tu primer empleado para comenzar a preparar tu equipo.</p><Button variant="outline" onClick={()=>setEditing(null)}>Agregar primer empleado</Button></div>}
-    <div className="employee-list">{visibleEmployees.map(e=><article key={e.id} className="employee">
-      {e.photo_url?<img className="avatar" width={46} height={46} src={e.photo_url} alt={`Foto de ${e.first_name} ${e.last_name}`}/>:<span className="avatar" aria-hidden="true">{initials(e.first_name,e.last_name)}</span>}
-      <div className="employee-info"><p>{e.first_name} {e.last_name}</p><small>{e.role}</small><span className="employee-restaurant">{e.restaurant_name||restaurants.find(r=>r.id===e.restaurant_id)?.name}</span></div>
+    <div className="compact-employee-list">{visibleEmployees.map(e=><CompactEmployeeRow key={e.id} name={`${e.first_name} ${e.last_name}`} role={e.role} restaurant={restaurants.length>1?(e.restaurant_name||restaurants.find(r=>r.id===e.restaurant_id)?.name):undefined} photo={e.photo_url} status={e.survey_published?'Encuesta activa':'Encuesta sin publicar'} visits={e.visits} engagement={e.engagement} expanded={expanded===e.id} onToggle={()=>setExpanded(value=>value===e.id?null:e.id)} onboarding={onboarding} actions={
       <div className="employee-actions">{!onboarding&&<Link className="icon-action" title="Ver opiniones" aria-label={`Ver opiniones de ${e.first_name} ${e.last_name}`} href={`/dashboard?section=opiniones&restaurant=${e.restaurant_id}&employee=${e.id}`}><MessageSquareText size={16} aria-hidden="true"/></Link>}<button className="icon-action" type="button" title="Editar empleado" aria-label={`Editar a ${e.first_name} ${e.last_name}`} onClick={()=>setEditing(e)}><Pencil size={16} aria-hidden="true"/></button><button className="icon-action icon-danger" type="button" title="Eliminar empleado" aria-label={`Eliminar a ${e.first_name} ${e.last_name}`} onClick={()=>setDeleting(e.id)}><Trash2 size={16} aria-hidden="true"/></button></div>
-      {deleting===e.id && <div className="stack" role="group" aria-label="Confirmar eliminación"><p className="muted">¿Eliminar a {e.first_name} {e.last_name}? Su enlace dejará de aceptar respuestas. Las opiniones anteriores se conservarán.</p><div className="actions"><Button size="sm" variant="destructive" disabled={busy} onClick={()=>remove(e.id)}>{busy?'Eliminando…':'Sí, eliminar'}</Button><Button size="sm" variant="outline" disabled={busy} onClick={()=>setDeleting(null)}>Cancelar</Button></div></div>}
-    </article>)}</div>{employees.length>0&&!visibleEmployees.length&&<p className="empty muted">Todavía no hay empleados en este restaurante.</p>}
+      }>{deleting===e.id && <div className="stack" role="group" aria-label="Confirmar eliminación"><p className="muted">¿Eliminar a {e.first_name} {e.last_name}? Su enlace dejará de aceptar respuestas. Las opiniones anteriores se conservarán.</p><div className="actions"><Button size="sm" variant="destructive" disabled={busy} onClick={()=>remove(e.id)}>{busy?'Eliminando…':'Sí, eliminar'}</Button><Button size="sm" variant="outline" disabled={busy} onClick={()=>setDeleting(null)}>Cancelar</Button></div></div>}
+    </CompactEmployeeRow>)}</div>{employees.length>0&&!visibleEmployees.length&&<p className="empty muted">Todavía no hay empleados en este restaurante.</p>}
   </div>;
 }
 function EmployeeForm({restaurantId,restaurants,employee,onSaved,onCancel}:{restaurantId:string;restaurants:{id:string;name:string}[];employee?:Employee;onSaved:(restaurantId:string)=>void;onCancel:()=>void}) {

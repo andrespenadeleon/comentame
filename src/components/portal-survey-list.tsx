@@ -1,0 +1,8 @@
+'use client';
+import { useState } from 'react';
+import { CustomerSurvey } from './customer-survey';
+import type { PortalSurvey } from '@/lib/portal-dashboard';
+export function PortalSurveyList({surveys,draft=false}:{surveys:PortalSurvey[];draft?:boolean}){
+ const [open,setOpen]=useState<string|null>(null);
+ return <div className="stack">{surveys.map(survey=>{const id=survey.id||survey.restaurant_id;return <article className="portal-survey-record" key={id}><header><div><h3>{survey.title||'Borrador sin título'}</h3><p className="muted">{survey.restaurant_name} · {draft?'Borrador':`Versión ${survey.version}`} · {survey.questions.length} preguntas{(survey.published_at||survey.updated_at)&&<> · {new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeZone:'America/Monterrey'}).format(new Date((survey.published_at||survey.updated_at)!))}</>}</p></div><span className="pill">{draft?'Sin publicar':survey.active?'Publicada activa':'Versión anterior'}</span><button type="button" className="button button-outline button-sm" aria-expanded={open===id} aria-controls={`survey-${id}`} onClick={()=>setOpen(value=>value===id?null:id)}>{open===id?'Ocultar':'Vista previa'}</button></header><div id={`survey-${id}`} hidden={open!==id}>{open===id&&<CustomerSurvey preview branding={{name:survey.restaurant_name,logo_path:survey.logo_path,social_links:survey.social_links,google_maps_url:survey.google_maps_url}} title={survey.title} questions={survey.questions} theme={survey.theme}/>}</div></article>;})}{!surveys.length&&<p className="empty muted">No hay {draft?'borradores':'encuestas publicadas'} para este restaurante.</p>}</div>;
+}

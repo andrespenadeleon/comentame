@@ -9,7 +9,7 @@ function Avatar({restaurant}:{restaurant:RestaurantOption}) {
  const logo=logoUrl(restaurant.logo_path);
  return <span className="restaurant-avatar" aria-hidden="true">{logo?<img src={logo} alt="" width={36} height={36}/>:restaurant.name.trim().split(/\s+/).slice(0,2).map(word=>word[0]).join('').toUpperCase()}</span>;
 }
-export function RestaurantSwitcher({restaurants,activeId}:{restaurants:RestaurantOption[];activeId:string}) {
+export function RestaurantSwitcher({restaurants,activeId,basePath='/dashboard'}:{restaurants:RestaurantOption[];activeId:string;basePath?:'/dashboard'|'/admin'}) {
  const active=restaurants.find(restaurant=>restaurant.id===activeId)!;
  const [open,setOpen]=useState(false),[search,setSearch]=useState('');
  const root=useRef<HTMLDivElement>(null),trigger=useRef<HTMLButtonElement>(null),panel=useRef<HTMLDivElement>(null);
@@ -29,8 +29,8 @@ export function RestaurantSwitcher({restaurants,activeId}:{restaurants:Restauran
  function close(){setOpen(false);setSearch('');}
  function href(restaurantId:string){
   const query=new URLSearchParams(params.toString());query.set('restaurant',restaurantId);
-  for(const key of ['employee','rating','page','detail','scope'])query.delete(key);
-  return `/dashboard?${query}`;
+  for(const key of ['employee','rating','page','detail','scope','q'])query.delete(key);
+  return `${basePath}?${query}`;
  }
  return <div className="restaurant-switcher" ref={root} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node))close();}}>
   {restaurants.length===1?<div className="restaurant-switcher-trigger is-static"><Avatar restaurant={active}/><span><strong>{active.name}</strong><small>Restaurante activo</small></span></div>:<button ref={trigger} type="button" className="restaurant-switcher-trigger" aria-expanded={open} aria-controls={id} aria-label={`Cambiar restaurante. Actual: ${active.name}`} onClick={()=>{setSearch('');setOpen(value=>!value);}} onKeyDown={event=>{if(event.key==='ArrowDown'||event.key==='ArrowUp'){event.preventDefault();setOpen(true);}}}><Avatar restaurant={active}/><span><strong>{active.name}</strong><small>Restaurante activo</small></span><ChevronsUpDown size={17} aria-hidden="true"/></button>}
@@ -45,7 +45,7 @@ export function RestaurantSwitcher({restaurants,activeId}:{restaurants:Restauran
   }}>
    {restaurants.length>5&&<label className="restaurant-switcher-search"><Search size={15} aria-hidden="true"/><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="Buscar restaurante" aria-label="Buscar restaurante"/></label>}
    <nav className="restaurant-switcher-options" aria-label="Tus restaurantes">{filtered.map(restaurant=><Link key={restaurant.id} href={href(restaurant.id)} aria-current={restaurant.id===activeId?'true':undefined} onClick={close}><Avatar restaurant={restaurant}/><span>{restaurant.name}</span>{restaurant.id===activeId&&<Check size={16} aria-hidden="true"/>}</Link>)}{!filtered.length&&<p className="muted">No encontramos ese restaurante.</p>}</nav>
-   <Link className="restaurant-manage" href={`/dashboard?section=restaurante&restaurant=${activeId}`} onClick={close}><Store size={16} aria-hidden="true"/>Administrar restaurantes</Link>
+   <Link className="restaurant-manage" href={`${basePath}?section=restaurante&restaurant=${activeId}`} onClick={close}><Store size={16} aria-hidden="true"/>Administrar restaurantes</Link>
   </div>}
  </div>;
 }

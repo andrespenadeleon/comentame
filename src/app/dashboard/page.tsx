@@ -25,7 +25,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<Opi
  const section=sections.includes(params.section||'')?params.section!:'resumen';
  const stored=(await cookies()).get('cm_restaurant')?.value;
  const restaurant=restaurants.find(r=>r.id===params.restaurant)||restaurants.find(r=>r.id===stored)||restaurants[0];
- const effectiveParams={...params,restaurant:params.scope==='all'||params.restaurant==='all'?'all':restaurant.id};
+ const effectiveParams={...params,portal:undefined,restaurant:params.scope==='all'||params.restaurant==='all'?'all':restaurant.id};
  const href=(s:string,id=restaurant.id)=>`/dashboard?section=${s}&restaurant=${id}`;
  const headings:Record<string,string>={resumen:'Resumen de tu restaurante',opiniones:'Opiniones y métricas',restaurante:'Tu restaurante, a tu manera.',equipo:'Las personas detrás de cada experiencia.',encuesta:'Haz las preguntas que importan.',soporte:'Estamos para escucharte.'};
  const descriptions:Record<string,string>={resumen:'Conoce cómo viven tus comensales cada visita.',opiniones:'Explora las respuestas y encuentra oportunidades para mejorar.',restaurante:'Mantén al día los datos, el logo y las redes de tu negocio.',equipo:'Administra a tu equipo y encuentra a cada empleado por restaurante.',encuesta:'Diseña, previsualiza y publica una encuesta sencilla.',soporte:'Un espacio para comunicarte con el equipo de comenta.me.'};

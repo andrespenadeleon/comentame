@@ -35,3 +35,11 @@ El embudo, los tiempos y el desglose por pregunta usan exclusivamente visitas co
 El endpoint de reporte es público para permitir encuestas sin login: el UUID aleatorio actúa como identificador de la apertura y no se expone públicamente. Se validan vínculos, campos permitidos, tamaños y rangos en servidor/SQL. Son métricas aproximadas del navegador, no un mecanismo antifraude. Los envíos y el conteo básico de visitas siguen funcionando durante el despliegue si falta la nueva migración.
 
 El portal admin también presenta el embudo, tiempos y participación por empleado, respetando búsqueda, restaurante y estado del directorio. Las consultas de administración siguen detrás de la comprobación explícita de portal_admin.
+
+## Clics en reseña de Google
+
+Aplicar `202611030004_google_review_clicks.sql` después del portal de consulta. No aplicada remotamente. El botón de éxito reporta cada clic primario, de teclado o botón central mediante Beacon/keepalive sin esperar la petición para abrir Google. Cada clic tiene su propio UUID; un reintento del mismo evento no duplica el conteo. Los clics repetidos reales sí cuentan.
+
+El servidor exige una visita completada y vinculada a una respuesta, y un restaurante con enlace a Google. La tabla guarda ID de visita y fecha; restaurante, empleado y versión se obtienen de esa relación. Los clientes públicos no pueden insertar directamente ni leer eventos. Las vistas previas no muestran la invitación ni generan clics. No se reanuda el tiempo activo después de completar la encuesta.
+
+La métrica aparece en participación del restaurante/portal y en detalles por empleado. Usa la misma cohorte y filtros de apertura que las métricas de engagement; el evento conserva su fecha de clic. No mide reseñas publicadas, visitantes únicos ni clics externos a este botón. Solicitudes bloqueadas o un cierre abrupto pueden impedir el reporte. Sin tests, typecheck, builds ni revisión de navegador por indicación del usuario. Sin commit/push.

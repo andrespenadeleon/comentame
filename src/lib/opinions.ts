@@ -3,7 +3,7 @@ import type { createClient } from './supabase/server';
 import type { Answers } from './survey-types';
 import type { Question } from './validation';
 export type Opinion={id:string;restaurant_id:string;employee_id:string;restaurant_name:string;employee_name:string;guest_name:string;guest_contact:string|null;rating:number;answers:Answers;submitted_at:string;survey_version_id:string};
-export type OpinionParams={section?:string;restaurant?:string;period?:string;rating?:string;employee?:string;page?:string;detail?:string;tab?:string;scope?:string};
+export type OpinionParams={section?:string;restaurant?:string;period?:string;rating?:string;employee?:string;page?:string;detail?:string;tab?:string;scope?:string;portal?:string};
 type DB=Awaited<ReturnType<typeof createClient>>;
 export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionParams){
  const restaurant=restaurantIds.includes(params.restaurant||'')?params.restaurant:null;
@@ -37,6 +37,6 @@ export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionPa
 
 export type VisitMetrics={visits:number;employees:{id:string;restaurant_id:string;name:string;restaurant_name:string;archived:boolean;visits:number;responses:number;average:number|null}[]};
 
-export type EngagementSummary={visits:number;starts:number;completions:number;unfinished:number;average_seconds:number|null;completed_seconds?:number|null;incomplete_seconds?:number|null};
+export type EngagementSummary={google_clicks?:number;visits:number;starts:number;completions:number;unfinished:number;average_seconds:number|null;completed_seconds?:number|null;incomplete_seconds?:number|null};
 export type EngagementEmployee=EngagementSummary&{employee_id:string};
 export type EngagementMetrics=EngagementSummary&{employees:EngagementEmployee[];fields:{restaurant_id:string;restaurant_name:string;version_id:string;version:number;key:string;label:string;visits:number;touched:number;answered:number}[]};

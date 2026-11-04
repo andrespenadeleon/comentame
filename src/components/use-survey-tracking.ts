@@ -43,5 +43,11 @@ export function useSurveyTracking(context:Context|undefined,preview:boolean){
   document.addEventListener('visibilitychange',visibility);window.addEventListener('pagehide',hide);window.addEventListener('pageshow',show);
   return()=>{flush(true);session.current.anchor=null;clearInterval(interval);if(deferred.current)clearTimeout(deferred.current);document.removeEventListener('visibilitychange',visibility);window.removeEventListener('pagehide',hide);window.removeEventListener('pageshow',show);};
  },[enabled,flush]);
- return {touch,snapshot,finish:()=>{session.current.finished=true;session.current.anchor=null;if(deferred.current)clearTimeout(deferred.current);}};
+ const googleClick=useCallback(()=>{
+  if(!enabled||!context||!session.current.finished||!session.current.id)return;
+  const body=JSON.stringify({click_id:crypto.randomUUID(),visit_id:session.current.id});
+  if(navigator.sendBeacon?.('/api/encuesta/google',new Blob([body],{type:'application/json'})))return;
+  void fetch('/api/encuesta/google',{method:'POST',headers:{'Content-Type':'application/json'},body,keepalive:true}).catch(()=>{});
+ },[enabled,context?.restaurant_id,context?.employee_id,context?.survey_version_id]);
+ return {touch,snapshot,googleClick,finish:()=>{session.current.finished=true;session.current.anchor=null;if(deferred.current)clearTimeout(deferred.current);}};
 }

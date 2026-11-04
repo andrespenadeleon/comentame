@@ -1,4 +1,5 @@
 import 'server-only';
+import type { EngagementEmployee } from './opinions';
 import type { SocialLinks } from './survey-types';
 import { cache } from 'react';
 import { redirect } from 'next/navigation';
@@ -12,7 +13,7 @@ export const requireUser = cache(async () => {
 });
 export type Profile = {id:string;full_name:string;phone:string;onboarding_completed:boolean};
 export type Restaurant = {id:string;owner_id:string;name:string;address:string;phone:string;google_maps_url?:string|null;logo_path?:string|null;social_links?:SocialLinks;active_survey_id?:string|null};
-export type Employee = {id:string;restaurant_id:string;first_name:string;last_name:string;role:string;photo_path:string|null;photo_url?:string|null;restaurant_name?:string;deleted_at?:string|null};
+export type Employee = {id:string;restaurant_id:string;first_name:string;last_name:string;role:string;photo_path:string|null;photo_url?:string|null;restaurant_name?:string;deleted_at?:string|null;visits?:number;engagement?:EngagementEmployee;survey_published?:boolean};
 export const workspace = cache(async () => {
   const {db,user} = await requireUser();
   const [p,r] = await Promise.all([

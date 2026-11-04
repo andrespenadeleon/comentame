@@ -30,4 +30,4 @@ export async function portalDirectory(params:DirectoryParams){
  if(error)throw new Error('No pudimos cargar el directorio del portal. Verifica que la migración de administración esté aplicada.');
  return {user,filters,engagement,directory:data as {employees:PortalEmployee[];total:number;visits?:number;restaurants:{id:string;name:string}[];page:number;page_size:number}};
 }
-export function portalHref(filters:DirectoryFilters,page:number){const params=new URLSearchParams();if(filters.query)params.set('q',filters.query);if(filters.restaurant)params.set('restaurant',filters.restaurant);if(filters.status!=='active')params.set('status',filters.status);if(page>1)params.set('page',String(page));return params.size?`/admin?${params}`:'/admin';}
+export function portalHref(filters:DirectoryFilters,page:number){const params=new URLSearchParams({section:'equipo'});if(filters.query)params.set('q',filters.query);if(filters.restaurant)params.set('restaurant',filters.restaurant);if(filters.status!=='active')params.set('status',filters.status);if(page>1)params.set('page',String(page));return params.size?`/admin?${params}`:'/admin';}
