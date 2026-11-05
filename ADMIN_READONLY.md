@@ -13,3 +13,7 @@ El listado compacto se aplica a Mi equipo y al directorio admin. Se conservan la
 Los enlaces copiados agregan `?restaurante=nombre&empleado=nombre-apellido`. Son etiquetas descriptivas, pueden quedar desactualizadas al renombrar y no se usan para autorización, renderizado ni atribución. Los UUID continúan siendo la identidad real; los enlaces viejos siguen funcionando. El texto identifica personas a quien reciba el enlace, por decisión del producto.
 
 Sin tests, typecheck, builds ni revisión de navegador por instrucción del usuario. Sin commit/push. Archivos principales: componentes compact-employee-row, portal-employee-list, portal-employee-row, employees, dashboard-shell, restaurant-switcher; página admin; lib portal-dashboard, restaurant-data y tipos/links de opiniones; globals.css y migración SQL.
+
+## Compatibilidad del selector móvil — 5 de noviembre de 2026
+
+Se revisaron cierres prematuros en Safari/iPhone. La apertura táctil ya no fuerza foco en el buscador; solo la apertura por teclado mueve el foco. Se eliminó el cierre por blur; se cierra cuando existe un nuevo foco fuera del selector, por toque exterior, Escape o navegación. Un blur sin foco nuevo no desmonta las opciones antes del clic. Scroll/resize reposicionan el panel de escritorio sin cerrarlo y no desmontan las opciones móviles al cambiar el teclado o la barra del navegador. La búsqueda móvil usa 16px. No se ejecutaron tests/builds ni se reprodujo el caso en un iPhone real; la corrección se basa en revisión de código. Sin push en esta tarea.
