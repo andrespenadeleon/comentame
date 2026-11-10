@@ -1,0 +1,48 @@
+/* Shared product palette: Opiniones y métricas is the visual reference.
+   Restaurant-owned survey colors remain in --survey-* and inline theme values. */
+:root {
+  --background: #f7f8fc;
+  --surface: #ffffff;
+  --surface-subtle: #fafbfe;
+  --surface-hover: #f1f3f8;
+  --foreground: #192133;
+  --text-secondary: #475467;
+  --text-muted: #667085;
+  --text-placeholder: #737d91;
+  --border: #e4e9f2;
+  --border-strong: #cbd5e1;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-active: #1e40af;
+  --primary-foreground: #ffffff;
+  --primary-soft: #eaf0ff;
+  --primary-border: #b6c9fa;
+  --success: #38674e;
+  --success-soft: #eef7f1;
+  --success-border: #c7e3d1;
+  --warning: #785d29;
+  --warning-soft: #fff9ed;
+  --warning-border: #e8d9b7;
+  --rating: #d8bc7a;
+  --danger: #a6213c;
+  --danger-hover: #861b30;
+  --danger-soft: #fff0f2;
+  --danger-border: #e7c7cd;
+  --blue: var(--primary);
+  --muted: var(--surface-hover);
+  --radius: .5rem;
+  --radius-control: 8px;
+  --radius-card: 13px;
+  --radius-dialog: 16px;
+  --shadow-sm: 0 1px 4px #15244412;
+  --shadow-popover: 0 12px 36px #1a29491a;
+  --shadow-dialog: 0 24px 80px #101b4a29;
+  --focus-ring: 3px solid var(--primary);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --font-sans: 'DM Sans', Arial, sans-serif;
+}
