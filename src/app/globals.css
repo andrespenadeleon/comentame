@@ -258,3 +258,8 @@ button[aria-busy=true]{cursor:wait}
 .survey-experience .button-outline:hover{border-color:#dcdde5}
 .survey-experience .alert{background:#eef3ff;color:#294291}
 .survey-experience .alert-error{background:#fff0f2;color:#a6213c}
+
+/* Restaurant metrics omit Google; the admin retains the fourth funnel stage. */
+.overview-kpis.without-google,.opinion-journey-stages.without-google{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:1100px){.overview-kpis.without-google,.opinion-journey-stages.without-google{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.overview-kpis.without-google,.opinion-journey-stages.without-google{grid-template-columns:1fr}}
