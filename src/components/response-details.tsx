@@ -12,7 +12,8 @@ export function ResponseDetails({entries,closeHref,children}:{entries:Entry[];cl
  const rendered=content||displayed;
  useEffect(()=>{if(content)setDisplayed(content);},[content]);
  const exited=useCallback(()=>{setDisplayed(undefined);opener.current?.focus({preventScroll:true});},[]);
- function close(){window.history.pushState(null,'',closeHref);}
+ function preserveVersion(href:string){const next=new URL(href,window.location.origin),current=new URLSearchParams(window.location.search);const version=current.get('questionVersion');if(next.searchParams.get('section')==='opiniones'&&version)next.searchParams.set('questionVersion',version);return next.pathname+next.search+next.hash;}
+ function close(){window.history.pushState(null,'',preserveVersion(closeHref));}
  return <div className="response-details-controller" onClickCapture={event=>{
   if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
   const anchor=(event.target as Element).closest<HTMLAnchorElement>('a');
@@ -20,6 +21,6 @@ export function ResponseDetails({entries,closeHref,children}:{entries:Entry[];cl
   const id=anchor.dataset.responseDetail;
   if(!id||!entries.some(entry=>entry.id===id))return;
   event.preventDefault();event.stopPropagation();opener.current=anchor;
-  window.history.pushState(null,'',anchor.href);
+  window.history.pushState(null,'',preserveVersion(anchor.href));
  }}>{children}{rendered&&<OpinionDialog key={rendered.id} closeHref={closeHref} onClose={close} isOpen={!!content} onExited={exited}>{rendered.content}</OpinionDialog>}</div>;
 }
