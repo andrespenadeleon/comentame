@@ -2,12 +2,12 @@
 import { useEffect,useRef,useState,useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard,Store,Users,ClipboardList,Menu,X,MessageSquare,LifeBuoy,CircleAlert } from 'lucide-react';
+import { LayoutDashboard,Store,Users,ClipboardList,Menu,X,MessageSquare,LifeBuoy,CircleAlert,ContactRound } from 'lucide-react';
 import { signOut } from '@/app/actions/auth';
 import { LoadingIndicator } from './loading-indicator';
 import { RestaurantSwitcher } from './restaurant-switcher';
 import { SignOutButton } from './signout-button';
-const navigation=[{id:'resumen',label:'Resumen',icon:LayoutDashboard},{id:'opiniones',label:'Opiniones y métricas',icon:MessageSquare},{id:'restaurante',label:'Mi restaurante',icon:Store},{id:'equipo',label:'Mi equipo',icon:Users},{id:'encuesta',label:'Mi encuesta',icon:ClipboardList},{id:'soporte',label:'Soporte',icon:LifeBuoy}];
+const navigation=[{id:'resumen',label:'Resumen',icon:LayoutDashboard},{id:'opiniones',label:'Opiniones y métricas',icon:MessageSquare},{id:'leads',label:'Leads',icon:ContactRound},{id:'restaurante',label:'Mi restaurante',icon:Store},{id:'equipo',label:'Mi equipo',icon:Users},{id:'encuesta',label:'Mi encuesta',icon:ClipboardList},{id:'soporte',label:'Soporte',icon:LifeBuoy}];
 export function DashboardShell({name,restaurantName,restaurantId,restaurantCount,restaurants,section,children,surveyNeedsSetup=false,portal=false}:{name:string;restaurantName:string;restaurantId:string;restaurantCount:number;restaurants:{id:string;name:string;logo_path?:string|null}[];section:string;children:React.ReactNode;surveyNeedsSetup?:boolean;portal?:boolean}) {
   const basePath=portal?'/admin':'/dashboard';
   const [open,setOpen]=useState(false);
@@ -40,6 +40,7 @@ export function DashboardShell({name,restaurantName,restaurantId,restaurantCount
     if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
     const anchor=(event.target as Element).closest<HTMLAnchorElement>('a[href]');
     if(!anchor||anchor.target==='_blank'||anchor.hasAttribute('download'))return;
+    if(anchor.hasAttribute('data-response-detail')||anchor.hasAttribute('data-response-close'))return;
     const url=new URL(anchor.href,window.location.origin);
     if(url.origin!==window.location.origin||url.pathname!==basePath)return;
     event.preventDefault();close();startTransition(()=>router.push(url.pathname+url.search));

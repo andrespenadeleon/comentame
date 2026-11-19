@@ -45,7 +45,7 @@ export function useSurveyTracking(context:Context|undefined,preview:boolean){
  },[enabled,flush]);
  const googleClick=useCallback(()=>{
   if(!enabled||!context||!session.current.finished||!session.current.id)return;
-  const body=JSON.stringify({click_id:crypto.randomUUID(),visit_id:session.current.id});
+  const body=JSON.stringify({click_id:crypto.randomUUID(),visit_id:session.current.id,event_kind:'voluntary'});
   if(navigator.sendBeacon?.('/api/encuesta/google',new Blob([body],{type:'application/json'})))return;
   void fetch('/api/encuesta/google',{method:'POST',headers:{'Content-Type':'application/json'},body,keepalive:true}).catch(()=>{});
  },[enabled,context?.restaurant_id,context?.employee_id,context?.survey_version_id]);

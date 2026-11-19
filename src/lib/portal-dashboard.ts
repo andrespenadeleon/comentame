@@ -1,4 +1,5 @@
 import 'server-only';
+import { responseVersions } from './response-versions';
 import { cache } from 'react';
 import { z } from 'zod';
 import { requirePortalAdmin } from './portal-admin';
@@ -26,7 +27,8 @@ export async function portalOpinions(params:OpinionParams){
  db.rpc('portal_visit_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_rating:rating,p_from:from}),
  db.rpc('portal_survey_engagement',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from})]);
  if(opinions.error||metrics.error||engagement.error)throw new Error('No pudimos cargar las opiniones y métricas del portal.');
- return {...opinions.data,metrics:metrics.data as VisitMetrics,engagement:engagement.data as EngagementMetrics} as Awaited<ReturnType<typeof opinionsData>>;
+ const detailVersions=await responseVersions(db,((opinions.data?.opinions||[]) as {id:string}[]).map(item=>item.id));
+ return {...opinions.data,detailVersions,metrics:metrics.data as VisitMetrics,engagement:engagement.data as EngagementMetrics} as Awaited<ReturnType<typeof opinionsData>>;
 }
 export type PortalSurvey={id?:string;restaurant_id:string;restaurant_name:string;title:string;questions:Question[];theme:SurveyTheme;logo_path?:string|null;social_links?:Restaurant['social_links'];google_maps_url?:string|null;version?:number;active?:boolean;published_at?:string;updated_at?:string};
 export async function portalSurveys(restaurant:string,page:number){

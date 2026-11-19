@@ -1,3 +1,4 @@
+import { Leads } from '@/components/leads';
 import { cookies } from 'next/headers';
 import { Suspense } from 'react';
 import { LoadingIndicator } from '@/components/loading-indicator';
@@ -16,7 +17,7 @@ import { SurveyEditor } from '@/components/survey-editor';
 import { ProfileForm,RestaurantForm } from '@/components/details-forms';
 import { AddRestaurant } from '@/components/add-restaurant';
 export const metadata={title:'Tu dashboard',robots:{index:false,follow:false}};
-const sections=['resumen','opiniones','restaurante','equipo','encuesta','soporte'];
+const sections=['resumen','opiniones','leads','restaurante','equipo','encuesta','soporte'];
 export default async function Dashboard({searchParams}:{searchParams:Promise<OpinionParams>}) {
  const [admin,space]=await Promise.all([isPortalAdmin(),workspace()]);
  if(admin)redirect('/admin');
@@ -28,8 +29,8 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<Opi
  const stored=(await cookies()).get('cm_restaurant')?.value;
  const restaurant=restaurants.find(r=>r.id===params.restaurant)||restaurants.find(r=>r.id===stored)||restaurants[0];
  const effectiveParams={...params,portal:undefined,restaurant:params.scope==='all'||params.restaurant==='all'?'all':restaurant.id};
- const headings:Record<string,string>={resumen:'Resumen de tu restaurante',opiniones:'Opiniones y métricas',restaurante:'Tu restaurante, a tu manera.',equipo:'Las personas detrás de cada experiencia.',encuesta:'Haz las preguntas que importan.',soporte:'Estamos para escucharte.'};
- const descriptions:Record<string,string>={resumen:'Conoce cómo viven tus comensales cada visita.',opiniones:'Explora las respuestas y encuentra oportunidades de mejora.',restaurante:'Mantén al día los datos, el logo y las redes de tu negocio.',equipo:'Administra a tu equipo y encuentra a cada empleado por restaurante.',encuesta:'Diseña, previsualiza y publica una encuesta sencilla.',soporte:'Un espacio para comunicarte con el equipo de comenta.me.'};
+ const headings:Record<string,string>={leads:'Leads',resumen:'Resumen de tu restaurante',opiniones:'Opiniones y métricas',restaurante:'Tu restaurante, a tu manera.',equipo:'Las personas detrás de cada experiencia.',encuesta:'Haz las preguntas que importan.',soporte:'Estamos para escucharte.'};
+ const descriptions:Record<string,string>={leads:'Los comensales que compartieron su contacto y su experiencia.',resumen:'Conoce cómo viven tus comensales cada visita.',opiniones:'Explora las respuestas y encuentra oportunidades de mejora.',restaurante:'Mantén al día los datos, el logo y las redes de tu negocio.',equipo:'Administra a tu equipo y encuentra a cada empleado por restaurante.',encuesta:'Diseña, previsualiza y publica una encuesta sencilla.',soporte:'Un espacio para comunicarte con el equipo de comenta.me.'};
  return <DashboardShell name={profile.full_name} restaurantName={restaurant.name} restaurantId={restaurant.id} restaurantCount={restaurants.length} restaurants={restaurants.map(({id,name,logo_path})=>({id,name,logo_path}))} section={section} surveyNeedsSetup={!restaurant.active_survey_id}><div className={section==='resumen'?'page-head overview-page-head':'page-head'}>{section==='resumen'?<><h1 className="overview-heading">Resumen de tu restaurante <span aria-hidden="true">— </span><span className="overview-restaurant">{restaurant.name}</span></h1><OverviewPeriodToolbar restaurantId={restaurant.id} period={params.period}/></>:<div><span className="eyebrow">{section==='opiniones'&&effectiveParams.restaurant==='all'?'Todos mis restaurantes':restaurant.name}</span><h1>{questionParticipation?'Participación por pregunta':headings[section]}</h1><p className="muted">{questionParticipation?'Descubre cómo interactúan tus clientes con cada pregunta de tu encuesta.':descriptions[section]}</p></div>}</div>
 
  <Suspense key={`${section}:${restaurant.id}:${JSON.stringify(params)}`} fallback={<LoadingIndicator dashboard/>}><DashboardContent space={space} restaurant={restaurant} section={section} params={effectiveParams}/></Suspense>
@@ -38,6 +39,7 @@ export default async function Dashboard({searchParams}:{searchParams:Promise<Opi
 
 async function DashboardContent({space,restaurant,section,params}:{space:Awaited<ReturnType<typeof workspace>>;restaurant:Awaited<ReturnType<typeof workspace>>['restaurants'][number];section:string;params:OpinionParams}) {
  const {db,restaurants,user,profile}=space;
+ if(section==='leads')return <Leads restaurantId={restaurant.id} params={params}/>;
  if(section==='resumen')return <RestaurantOverview db={db} restaurant={restaurant} period={params.period}/>;
  const [data,employees,opinions]=await Promise.all([
   section==='encuesta'?restaurantData(db,restaurant.id,false):null,

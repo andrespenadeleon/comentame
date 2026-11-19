@@ -1,4 +1,5 @@
 import 'server-only';
+import { responseVersions } from './response-versions';
 import type { createClient } from './supabase/server';
 import type { Answers } from './survey-types';
 import type { Question } from './validation';
@@ -32,7 +33,8 @@ export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionPa
  }
  if(metrics.error&&!['PGRST202','42883'].includes(metrics.error.code))throw new Error('No pudimos cargar las visitas.');
  if(engagement.error&&!['PGRST202','42883'].includes(engagement.error.code))throw new Error('No pudimos cargar la participación.');
- return {engagement:engagement.error?null:engagement.data as EngagementMetrics,metrics:metrics.error?null:metrics.data as VisitMetrics,opinions:(list.data||[]) as Opinion[],count:list.count||0,summary:summary.data as {total:number;average:number|null;distribution:Record<string,number>},staff:staff||[],restaurant,period,rating,employee,page,detail,version};
+ const detailVersions=await responseVersions(db,(list.data||[]).map(item=>item.id));
+ return {detailVersions,engagement:engagement.error?null:engagement.data as EngagementMetrics,metrics:metrics.error?null:metrics.data as VisitMetrics,opinions:(list.data||[]) as Opinion[],count:list.count||0,summary:summary.data as {total:number;average:number|null;distribution:Record<string,number>},staff:staff||[],restaurant,period,rating,employee,page,detail,version};
 }
 
 export type VisitMetrics={visits:number;employees:{id:string;restaurant_id:string;name:string;restaurant_name:string;archived:boolean;role?:string;visits:number;responses:number;average:number|null}[]};

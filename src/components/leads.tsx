@@ -1,0 +1,30 @@
+import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { ContactRound,ChevronRight } from 'lucide-react';
+import { leadsData,leadHref,type LeadRow } from '@/lib/leads';
+import type { OpinionParams } from '@/lib/opinions';
+import { ResponseDetails } from './response-details';
+import { OpinionDetail,OpinionDetailContent } from './opinions';
+const date=(value:string)=>new Intl.DateTimeFormat('es-MX',{dateStyle:'medium',timeStyle:'short',timeZone:'America/Monterrey'}).format(new Date(value));
+function compactDate(value:string){
+ const options={timeZone:'America/Monterrey'};
+ const parts=new Intl.DateTimeFormat('es-MX',{...options,day:'numeric',month:'short',year:'numeric'}).formatToParts(new Date(value));
+ const part=(type:Intl.DateTimeFormatPartTypes)=>parts.find(item=>item.type===type)?.value||'';
+ const year=part('year'),currentYear=new Intl.DateTimeFormat('es-MX',{...options,year:'numeric'}).format(new Date());
+ return `${part('day')} ${part('month').replace(/\./g,'')}${year===currentYear?'':` ${year}`}`;
+}
+function GoogleStatus({lead}:{lead:LeadRow}){return <span className="leads-google" title={lead.google_clicked?'Se registró un clic voluntario. No confirma una reseña publicada.':lead.google_legacy?'Evento histórico que puede ser clic o redirección automática.':'No hay un clic voluntario registrado.'}>{lead.google_clicked?'Sí':lead.google_legacy?'Histórico sin confirmar':'Sin clic registrado'}</span>;}
+export async function Leads({restaurantId,params,portal=false}:{restaurantId:string;params:OpinionParams;portal?:boolean}){
+ const result=await leadsData(restaurantId,params,portal);
+ if(result.setup)return <section className="card stack"><h2>Leads estará disponible al actualizar Supabase</h2><p className="muted">Aplica la migración 202611180001_restaurant_leads.sql para consultar los leads y registrar clics voluntarios.</p></section>;
+ const {data,page}=result;const pages=Math.max(1,Math.ceil(data.total/20));
+ if(page>pages)redirect(leadHref(restaurantId,pages,portal));
+ const closeHref=leadHref(restaurantId,page,portal);
+ const selectedLead=data.rows.find(lead=>lead.id===data.detail?.id);
+ const prepared=data.rows.filter(lead=>lead.response&&lead.version);
+ const entries=prepared.map(lead=>({id:lead.id,content:<OpinionDetailContent data={{detail:lead.response!,version:lead.version!}} params={params} closeHref={closeHref} extraMetadata={<><dt>Clic en Google</dt><dd><GoogleStatus lead={lead}/></dd></>}/>}));
+ if(prepared.length>0&&data.detail&&!entries.some(entry=>entry.id===data.detail!.id))entries.push({id:data.detail.id,content:<OpinionDetailContent data={{detail:data.detail,version:data.version}} params={params} closeHref={closeHref} extraMetadata={selectedLead?<><dt>Clic en Google</dt><dd><GoogleStatus lead={selectedLead}/></dd></>:undefined}/>});
+ const instant=prepared.length>0;
+
+ return <ResponseDetails key={`${restaurantId}:${page}`} entries={entries} closeHref={closeHref}><section className="card leads-card"><div className="card-head"><h2>Contactos de tus comensales</h2><span className="pill">{data.total.toLocaleString('es-MX')} registros</span></div><p className="muted leads-note">Una fila por encuesta con nombre y contacto. Compartir contacto no implica aceptar promociones.</p>{data.rows.length?<><ul className="leads-mobile-list" aria-label="Leads del restaurante">{data.rows.map(lead=><li key={lead.id}><Link className="lead-mobile-row" data-response-detail={lead.response&&lead.version?lead.id:undefined} prefetch={false} href={leadHref(restaurantId,page,portal,lead.id)} aria-label={`Ver detalles de ${lead.guest_name}, ${lead.guest_contact}, ${date(lead.submitted_at)}`}><strong title={lead.guest_name}>{lead.guest_name}</strong><time dateTime={lead.submitted_at} title={date(lead.submitted_at)}>{compactDate(lead.submitted_at)}</time><span className="lead-mobile-contact" title={lead.guest_contact}>{lead.guest_contact}</span><ChevronRight size={16} aria-hidden="true"/></Link></li>)}</ul><div className="leads-table-wrap"><table className="leads-table"><caption className="sr-only">Leads del restaurante seleccionado</caption><thead><tr><th scope="col">Nombre</th><th scope="col">Contacto</th><th scope="col">Día de encuesta</th><th scope="col">Mesero</th><th scope="col">Clic en Google</th><th scope="col"><span className="sr-only">Detalle</span></th></tr></thead><tbody>{data.rows.map(lead=><tr key={lead.id}><th scope="row" data-label="Nombre">{lead.guest_name}</th><td data-label="Contacto">{lead.guest_contact}</td><td data-label="Día de encuesta"><time dateTime={lead.submitted_at}>{date(lead.submitted_at)}</time></td><td data-label="Mesero">{lead.employee_name}</td><td data-label="Clic en Google"><GoogleStatus lead={lead}/></td><td><Link className="text-link" data-response-detail={lead.response&&lead.version?lead.id:undefined} prefetch={false} href={leadHref(restaurantId,page,portal,lead.id)}>Ver detalles →</Link></td></tr>)}</tbody></table></div><p className="footer-note">Los eventos históricos de Google pueden incluir redirecciones automáticas; solo los nuevos clics voluntarios se muestran como confirmados. Un clic no confirma una reseña publicada.</p>{pages>1&&<nav className="pagination actions" aria-label="Páginas de leads">{page>1&&<Link className="button button-outline" href={leadHref(restaurantId,page-1,portal)}>← Anterior</Link>}<span>Página {page} de {pages}</span>{page<pages&&<Link className="button button-outline" href={leadHref(restaurantId,page+1,portal)}>Siguiente →</Link>}</nav>}</>:<div className="empty"><div className="empty-icon"><ContactRound size={25} aria-hidden="true"/></div><h3>Aún no hay leads</h3><p>Aquí aparecerán los comensales que envíen su encuesta con nombre y contacto.</p></div>}{!instant&&data.detail&&<OpinionDetail data={{detail:data.detail,version:data.version}} params={params} closeHref={closeHref} extraMetadata={selectedLead?<><dt>Clic en Google</dt><dd><GoogleStatus lead={selectedLead}/></dd></>:undefined}/>}</section></ResponseDetails>;
+}
