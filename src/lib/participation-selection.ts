@@ -1,0 +1,4 @@
+import type { EngagementMetrics } from './opinions';
+import type { ParticipationVersion } from './participation-versions';
+export function participationOptions(fields:EngagementMetrics['fields'],versions:ParticipationVersion[]|null){return versions??[...new Map(fields.map(field=>[field.version_id,{id:field.version_id,restaurant_id:field.restaurant_id,restaurant_name:field.restaurant_name,version:field.version,title:'',published_at:''}])).values()].sort((a,b)=>b.version-a.version||a.restaurant_name.localeCompare(b.restaurant_name));}
+export function insightScope(version:ParticipationVersion,params:{period?:string;employee?:string;rating?:string}){const scope=new URLSearchParams({restaurant:version.restaurant_id,version:version.id,period:['7','30','90','all'].includes(params.period||'')?params.period!:'30'});if(params.employee)scope.set('employee',params.employee);if(params.rating)scope.set('rating',params.rating);return scope.toString();}

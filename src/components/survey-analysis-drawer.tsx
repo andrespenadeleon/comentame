@@ -1,0 +1,22 @@
+'use client';
+import { useCallback,useId,useRef,useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { Sparkles,X } from 'lucide-react';
+import type { EngagementMetrics,OpinionParams } from '@/lib/opinions';
+import type { ParticipationVersion } from '@/lib/participation-versions';
+import { participationOptions,insightScope } from '@/lib/participation-selection';
+import { opinionHref } from '@/lib/opinion-navigation';
+import { OpinionDialog } from './opinion-dialog';
+import { MockSurveyInsights } from './mock-survey-insights';
+type Props={fields:EngagementMetrics['fields'];versions:ParticipationVersion[]|null;params:OpinionParams};
+export function SurveyAnalysisButton({fields,versions,params}:Props){
+ const query=useSearchParams(),heading=useId(),button=useRef<HTMLButtonElement>(null);
+ const [mounted,setMounted]=useState(false),[open,setOpen]=useState(false);
+ const exited=useCallback(()=>{setMounted(false);button.current?.focus({preventScroll:true});},[]);
+ const options=participationOptions(fields,versions),selected=options.find(version=>version.id===query.get('questionVersion'))||options[0];
+ if(params.portal!=='1')return null;
+ const scope=selected?insightScope(selected,params):null;
+ return <><button ref={button} type="button" className="button button-outline button-sm survey-analysis-trigger" disabled={!selected} aria-haspopup="dialog" aria-expanded={open} onClick={()=>{setMounted(true);setOpen(true);}}><Sparkles size={15} aria-hidden="true"/>Análisis con IA</button>{mounted&&selected&&scope&&<OpinionDialog closeHref="#" isOpen={open} onClose={()=>setOpen(false)} onExited={exited} labelledBy={heading}><section className="opinion-detail survey-analysis-drawer"><header><div><span className="eyebrow">ANÁLISIS DE LA ENCUESTA</span><h2 id={heading}>Análisis con IA</h2><p className="muted">{selected.restaurant_name} · Encuesta v{selected.version}</p></div><button type="button" className="icon-action" onClick={()=>setOpen(false)} aria-label="Cerrar análisis"><X size={23}/></button></header><MockSurveyInsights key={scope} query={scope}/></section></OpinionDialog>}</>;
+}
+export function ParticipationToolbar(props:Props){const query=useSearchParams();return <div className="participation-page-toolbar"><Link className="text-link question-back" href={opinionHref(props.params,{view:undefined,detail:undefined,questionVersion:query.get('questionVersion')||props.params.questionVersion})}>← Volver atrás</Link><SurveyAnalysisButton {...props}/></div>;}
