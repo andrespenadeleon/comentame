@@ -1,3 +1,4 @@
+import { normalizeContact,validateContact } from '@/lib/survey-contact';
 import { NextResponse } from 'next/server';
 import { publicClient } from '@/lib/supabase/public';
 import { submissionSchema,validateAnswers } from '@/lib/validation';
@@ -20,7 +21,7 @@ export async function POST(request:Request){
   const {data:current,error:readError}=await db.rpc('get_public_survey',{p_restaurant_id:input.restaurant_id,p_employee_id:input.employee_id});
   if(readError)return response({error:'No pudimos conectarnos. Inténtalo nuevamente.'},503);
   if(!current)return response({error:'Esta encuesta ya no está disponible.'},410);
-  if((current as PublicSurvey).survey_version_id===input.survey_version_id){const validation=validateAnswers((current as PublicSurvey).questions,input.answers);if(validation.error)return response({error:validation.error},400);input.answers=validation.answers!;}
+  if((current as PublicSurvey).survey_version_id===input.survey_version_id){const contactError=validateContact(input.guest_contact,normalizeContact((current as PublicSurvey).contact_settings));if(contactError)return response({error:contactError},400);const validation=validateAnswers((current as PublicSurvey).questions,input.answers);if(validation.error)return response({error:validation.error},400);input.answers=validation.answers!;}
   const args={p_submission_id:input.submission_id,p_restaurant_id:input.restaurant_id,p_employee_id:input.employee_id,p_version_id:input.survey_version_id,p_name:input.guest_name,p_contact:input.guest_contact,p_rating:input.rating,p_answers:input.answers};
   let result=input.tracking?await db.rpc('submit_survey_tracked',{...args,p_tracking:input.tracking}):await db.rpc('submit_survey',args);
   // Preserve submissions while rolling out the analytics migration.
@@ -30,7 +31,8 @@ export async function POST(request:Request){
    if(message.includes('submission_conflict'))return response({error:'Ese envío ya se recibió. Recarga la página si deseas dejar otra opinión.'},409);
    if(message.includes('survey_unavailable'))return response({error:'Esta encuesta ya no está disponible.'},410);
    if(message.includes('answer_required')||message.includes('invalid_answer'))return response({error:'Revisa que las preguntas obligatorias estén completas y las opciones sean válidas.'},400);
-   if(message.includes('invalid_contact'))return response({error:'Revisa tu correo o teléfono, o deja el contacto vacío.'},400);
+   if(message.includes('contact_required'))return response({error:'El contacto es obligatorio para esta encuesta.'},400);
+   if(message.includes('invalid_contact'))return response({error:'Revisa que el contacto tenga el formato solicitado por la encuesta.'},400);
    return response({error:'No pudimos guardar tu opinión. Tus respuestas siguen aquí; inténtalo nuevamente.'},503);
   }
   return response({success:true,id:data});

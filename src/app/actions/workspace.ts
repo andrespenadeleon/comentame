@@ -7,7 +7,7 @@ import { messageFor } from '@/lib/errors';
 import { z } from 'zod';
 export type Result = {error?:string;success?:string;id?:string};
 function invalid(error:z.ZodError):Result {return {error:error.issues[0].message};}
-const refresh=()=>{revalidatePath('/dashboard','layout');revalidatePath('/onboarding');};
+const refresh=()=>{revalidatePath('/dashboard','layout');revalidatePath('/onboarding');revalidatePath('/admin','layout');};
 export async function saveProfile(input:unknown):Promise<Result> {
   const parsed=profileSchema.safeParse(input);if(!parsed.success)return invalid(parsed.error);
   const {db,user}=await requireUser();
@@ -51,7 +51,7 @@ export async function saveSurvey(restaurantId:string,input:unknown):Promise<Resu
   const parsed=draftSchema.safeParse(input);if(!parsed.success)return {error:surveyError(parsed.error)};
   if(!z.uuid().safeParse(restaurantId).success)return {error:'Restaurante inválido.'};
   const {db}=await requireUser();
-  const {error}=await db.rpc('save_survey_draft',{p_restaurant_id:restaurantId,p_title:parsed.data.title,p_questions:parsed.data.questions,p_theme:parsed.data.theme,p_step:parsed.data.builderStep});
+  const {error}=await db.rpc('save_survey_draft',{p_restaurant_id:restaurantId,p_title:parsed.data.title,p_questions:parsed.data.questions,p_theme:parsed.data.theme,p_step:parsed.data.builderStep,p_contact:parsed.data.contact_settings});
   if(error)return {error:messageFor(error)};
   return {success:'Guardado'};
 }
@@ -84,7 +84,7 @@ export async function publishSurvey(restaurantId:string,input:unknown):Promise<R
  const parsed=surveySchema.safeParse(input);if(!parsed.success)return {error:surveyError(parsed.error)};
  if(!z.uuid().safeParse(restaurantId).success)return {error:'Restaurante inválido.'};
  const {db}=await requireUser();
- const {data,error}=await db.rpc('publish_survey',{p_restaurant_id:restaurantId,p_title:parsed.data.title,p_questions:parsed.data.questions,p_theme:parsed.data.theme});
+ const {data,error}=await db.rpc('publish_survey',{p_restaurant_id:restaurantId,p_title:parsed.data.title,p_questions:parsed.data.questions,p_theme:parsed.data.theme,p_contact:parsed.data.contact_settings});
  if(error)return {error:error.message.includes('google_required')?'Agrega el enlace de Google Maps del restaurante antes de publicar.':messageFor(error)};
  refresh();return {success:'Tu encuesta ya está publicada.',id:data.id,version:data.version};
 }
@@ -122,8 +122,8 @@ export async function removeRestaurantLogo(restaurantId:string):Promise<Result> 
 export async function prepareSurveyBackground(restaurantId:string,mime:string):Promise<Result & {path?:string;token?:string}> {
  if(!z.uuid().safeParse(restaurantId).success||!['image/jpeg','image/png','image/webp'].includes(mime))return {error:'Elige una imagen JPG, PNG o WebP.'};
  const {db}=await requireUser();
- const {error:ownerError}=await db.from('restaurants').select('id').eq('id',restaurantId).single();
- if(ownerError)return {error:messageFor(ownerError)};
+ const {data:allowed,error:ownerError}=await db.rpc('can_edit_survey',{p_restaurant_id:restaurantId});
+ if(ownerError||!allowed)return {error:'No tienes acceso para editar esta encuesta.'};
  const ext=mime==='image/jpeg'?'jpg':mime==='image/png'?'png':'webp';
  const path=`${restaurantId}/${crypto.randomUUID()}.${ext}`;
  const {data,error}=await db.storage.from('survey-backgrounds').createSignedUploadUrl(path);
@@ -133,8 +133,8 @@ export async function prepareSurveyBackground(restaurantId:string,mime:string):P
 export async function confirmSurveyBackground(restaurantId:string,path:string):Promise<Result & {path?:string}> {
  if(!z.uuid().safeParse(restaurantId).success||!new RegExp('^'+restaurantId+'/[a-f0-9-]{36}\\.(jpg|png|webp)$').test(path))return {error:'La imagen no es válida.'};
  const {db}=await requireUser();
- const {error:ownerError}=await db.from('restaurants').select('id').eq('id',restaurantId).single();
- if(ownerError)return {error:messageFor(ownerError)};
+ const {data:allowed,error:ownerError}=await db.rpc('can_edit_survey',{p_restaurant_id:restaurantId});
+ if(ownerError||!allowed)return {error:'No tienes acceso para editar esta encuesta.'};
  const bucket=db.storage.from('survey-backgrounds');
  const {data,error}=await bucket.download(path);
  if(error||!data)return {error:'No pudimos confirmar la imagen. Intenta subirla de nuevo.'};

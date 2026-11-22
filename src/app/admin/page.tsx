@@ -1,3 +1,4 @@
+import { SurveyEditor } from '@/components/survey-editor';
 import { Leads } from '@/components/leads';
 import Link from 'next/link';
 import { cookies } from 'next/headers';
@@ -9,12 +10,12 @@ import { AppHeader } from '@/components/app-header';
 import { Opinions,OpinionMetrics,OpinionList } from '@/components/opinions';
 import { PortalEmployeeList } from '@/components/portal-employee-list';
 import { PortalSurveyList } from '@/components/portal-survey-list';
-import { portalWorkspace,portalOpinions,portalSurveys,descriptiveSurveyUrl } from '@/lib/portal-dashboard';
+import { portalWorkspace,portalOpinions,portalSurveys,portalSurveyEditor,descriptiveSurveyUrl } from '@/lib/portal-dashboard';
 import { portalDirectory,portalHref } from '@/lib/portal-admin';
 import type { OpinionParams } from '@/lib/opinions';
 export const dynamic='force-dynamic';
 export const metadata={title:'Portal de administración',robots:{index:false,follow:false}};
-type Params=OpinionParams&{q?:string;status?:string};
+type Params=OpinionParams&{q?:string;status?:string;edit?:string};
 const sections=['resumen','opiniones','leads','restaurante','equipo','encuesta','soporte'];
 export default async function AdminPage({searchParams}:{searchParams:Promise<Params>}){
  const [space,params,jar]=await Promise.all([portalWorkspace(),searchParams,cookies()]);
@@ -25,7 +26,7 @@ export default async function AdminPage({searchParams}:{searchParams:Promise<Par
  const section=sections.includes(params.section||'')?params.section!:params.q||params.status?'equipo':'resumen';
  const headings:Record<string,string>={leads:'Leads',resumen:'Resumen del portal',opiniones:'Opiniones y métricas',restaurante:'Restaurantes',equipo:'Tu equipo, más claro.',encuesta:'Encuestas de tus restaurantes',soporte:'Soporte'};
  const options=[{id:'all',name:'Todos los restaurantes'},...space.restaurants];
- return <DashboardShell portal name={space.user.email||'Portal admin'} restaurants={options} restaurantName={active?.name||'Todos los restaurantes'} restaurantId={restaurant} restaurantCount={space.restaurants.length} section={section}><div className="page-head"><span className="eyebrow">PORTAL ADMIN / {active?.name||'Todos los restaurantes'}</span><h1>{section==='opiniones'&&params.view==='questions'?'Participación por pregunta':headings[section]}</h1><p className="muted">{section==='opiniones'?(params.view==='questions'?'Descubre cómo interactúan tus clientes con cada pregunta de tu encuesta.':'Explora las respuestas y encuentra oportunidades de mejora.'):'Consulta los datos de tus restaurantes. Acceso de solo lectura.'}</p></div><Suspense key={JSON.stringify({...params,restaurant,section})} fallback={<LoadingIndicator dashboard/>}><PortalContent section={section} params={{...params,section,restaurant,portal:'1'}} restaurants={space.restaurants}/></Suspense></DashboardShell>;
+ return <DashboardShell portal name={space.user.email||'Portal admin'} restaurants={options} restaurantName={active?.name||'Todos los restaurantes'} restaurantId={restaurant} restaurantCount={space.restaurants.length} section={section}><div className="page-head"><span className="eyebrow">PORTAL ADMIN / {active?.name||'Todos los restaurantes'}</span><h1>{section==='opiniones'&&params.view==='questions'?'Participación por pregunta':headings[section]}</h1><p className="muted">{section==='opiniones'?(params.view==='questions'?'Descubre cómo interactúan tus clientes con cada pregunta de tu encuesta.':'Explora las respuestas y encuentra oportunidades de mejora.'):'Consulta los datos de tus restaurantes.'}</p></div><Suspense key={JSON.stringify({...params,restaurant,section})} fallback={<LoadingIndicator dashboard/>}><PortalContent section={section} params={{...params,section,restaurant,portal:'1'}} restaurants={space.restaurants}/></Suspense></DashboardShell>;
 }
 async function PortalContent({section,params,restaurants}:{section:string;params:Params;restaurants:Awaited<ReturnType<typeof portalWorkspace>>['restaurants']}){
  const restaurant=params.restaurant||'all';
@@ -45,8 +46,10 @@ async function PortalContent({section,params,restaurants}:{section:string;params
  }
  if(section==='restaurante')return <div className="stack">{restaurants.filter(item=>restaurant==='all'||item.id===restaurant).map(item=><section className="card stack" key={item.id}><h2>{item.name}</h2><dl className="opinion-metadata"><dt>Dirección</dt><dd>{item.address}</dd><dt>Teléfono</dt><dd>{item.phone}</dd><dt>Encuesta</dt><dd>{item.active_survey_id?'Publicada':'Sin publicar'}</dd></dl>{item.google_maps_url&&<a className="text-link" href={item.google_maps_url} target="_blank" rel="noopener noreferrer">Ver en Google Maps ↗</a>}</section>)}{!restaurants.length&&<p className="empty muted">Aún no hay restaurantes.</p>}</div>;
  if(section==='encuesta'){
+ if(params.edit==='1'&&restaurant!=='all'){const selected=restaurants.find(item=>item.id===restaurant);if(!selected)return null;const editor=await portalSurveyEditor(restaurant);if(editor.setup)return <section className="card stack"><h2>Editor pendiente de actualización</h2><p>Aplica la migración de contacto y edición de encuestas para habilitar el editor del portal.</p></section>;return <section className="card"><SurveyEditor key={restaurant} portal restaurantId={restaurant} initial={editor.draft} published={editor.published} branding={selected}/></section>;}
+
  const page=Math.min(100000,Math.max(1,Number.parseInt(params.page||'1',10)||1));const catalog=await portalSurveys(restaurant,page);const pages=Math.max(1,Math.ceil(catalog.total/20));if(page>pages)redirect(`/admin?section=encuesta&restaurant=${restaurant}&page=${pages}`);
- return <div className="stack"><section className="card stack"><h2>Borradores</h2><PortalSurveyList surveys={catalog.drafts} draft/></section><section className="card stack"><h2>Publicadas e historial</h2><PortalSurveyList surveys={catalog.published}/>{pages>1&&<nav className="pagination actions" aria-label="Páginas de encuestas">{page>1&&<Link className="button button-outline" href={`/admin?section=encuesta&restaurant=${restaurant}&page=${page-1}`}>← Anterior</Link>}<span>Página {page} de {pages}</span>{page<pages&&<Link className="button button-outline" href={`/admin?section=encuesta&restaurant=${restaurant}&page=${page+1}`}>Siguiente →</Link>}</nav>}</section></div>;
+ return <div className="stack">{restaurant!=='all'&&<div className="actions"><Link className="button" href={`/admin?section=encuesta&restaurant=${restaurant}&edit=1`}>Crear o editar encuesta</Link></div>}<section className="card stack"><h2>Borradores</h2><PortalSurveyList surveys={catalog.drafts} draft/></section><section className="card stack"><h2>Publicadas e historial</h2><PortalSurveyList surveys={catalog.published}/>{pages>1&&<nav className="pagination actions" aria-label="Páginas de encuestas">{page>1&&<Link className="button button-outline" href={`/admin?section=encuesta&restaurant=${restaurant}&page=${page-1}`}>← Anterior</Link>}<span>Página {page} de {pages}</span>{page<pages&&<Link className="button button-outline" href={`/admin?section=encuesta&restaurant=${restaurant}&page=${page+1}`}>Siguiente →</Link>}</nav>}</section></div>;
  }
  return <section className="card empty"><span className="pill">Próximamente</span><h2>Soporte</h2><p className="muted">El chat de soporte sigue pendiente de definición.</p></section>;
 }

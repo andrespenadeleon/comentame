@@ -1,4 +1,8 @@
 import 'server-only';
+import { normalizeContact } from './survey-contact';
+import { normalizeTheme } from './survey-theme';
+import { withInitialRating,type SurveyDraft } from './validation';
+import type { PublishedSurvey } from './survey-types';
 import { participationVersions } from './participation-versions';
 import { responseTrends } from './response-trends';
 import { responseVersions } from './response-versions';
@@ -32,7 +36,7 @@ export async function portalOpinions(params:OpinionParams){
  const detailVersions=await responseVersions(db,((opinions.data?.opinions||[]) as {id:string}[]).map(item=>item.id));
  return {...opinions.data,questionVersions,trends,detailVersions,metrics:metrics.data as VisitMetrics,engagement:engagement.data as EngagementMetrics} as Awaited<ReturnType<typeof opinionsData>>;
 }
-export type PortalSurvey={id?:string;restaurant_id:string;restaurant_name:string;title:string;questions:Question[];theme:SurveyTheme;logo_path?:string|null;social_links?:Restaurant['social_links'];google_maps_url?:string|null;version?:number;active?:boolean;published_at?:string;updated_at?:string};
+export type PortalSurvey={id?:string;restaurant_id:string;restaurant_name:string;title:string;questions:Question[];theme:SurveyTheme;contact_settings?:import('./survey-contact').ContactSettings;logo_path?:string|null;social_links?:Restaurant['social_links'];google_maps_url?:string|null;version?:number;active?:boolean;published_at?:string;updated_at?:string};
 export async function portalSurveys(restaurant:string,page:number){
  const {db}=await requirePortalAdmin();
  const {data,error}=await db.rpc('portal_survey_catalog',{p_restaurant_id:restaurant==='all'?null:restaurant,p_page:page});
@@ -47,3 +51,5 @@ export function descriptiveSurveyUrl(origin:string,restaurantId:string,employeeI
  url.searchParams.set('restaurante',slug(restaurantName));url.searchParams.set('empleado',slug(employeeName));
  return url.toString();
 }
+
+export async function portalSurveyEditor(restaurantId:string){const {db}=await requirePortalAdmin();const {data,error}=await db.rpc('portal_survey_editor',{p_restaurant_id:restaurantId});if(error){if(['PGRST202','42883'].includes(error.code))return {setup:true,draft:null,published:null};throw new Error('No pudimos cargar el editor de la encuesta.');}const draft=data.draft;return {setup:false,published:data.published as PublishedSurvey|null,draft:draft?{title:draft.editor_state?.title??draft.title,questions:withInitialRating(draft.editor_state?.questions??draft.questions),theme:normalizeTheme(draft.theme),contact_settings:normalizeContact(draft.contact_settings),builderStep:draft.builder_step} as SurveyDraft:null};}

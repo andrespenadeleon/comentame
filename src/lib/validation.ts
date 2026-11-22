@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { contactSettingsSchema,DEFAULT_CONTACT } from './survey-contact';
 import { surveyThemeSchema,DEFAULT_THEME } from './survey-theme';
 const text = (label: string, max = 150) => z.string().trim().min(1, `${label} es obligatorio.`).max(max, `Máximo ${max} caracteres.`);
 export const phoneSchema = z.string().trim().refine(value => {
@@ -41,7 +42,7 @@ export const questionSchema = z.object({
   if (['single','multiple'].includes(q.type) && (q.options.length < 2 || new Set(q.options).size !== q.options.length)) ctx.addIssue({code:'custom',path:['options'],message:'Agrega de 2 a 10 opciones distintas.'});
   if (['text','rating'].includes(q.type) && q.options.length) ctx.addIssue({code:'custom',path:['options'],message:'Esta pregunta no necesita opciones.'});
 });
-export const surveySchema = z.object({theme:surveyThemeSchema.default(DEFAULT_THEME),title: text('El título', 150), questions: z.array(questionSchema).min(1, 'La encuesta debe comenzar con la calificación de estrellas.').max(21, 'Máximo 20 preguntas adicionales a la calificación.')}).superRefine((survey,ctx) => {
+export const surveySchema = z.object({contact_settings:contactSettingsSchema.default(DEFAULT_CONTACT),theme:surveyThemeSchema.default(DEFAULT_THEME),title: text('El título', 150), questions: z.array(questionSchema).min(1, 'La encuesta debe comenzar con la calificación de estrellas.').max(21, 'Máximo 20 preguntas adicionales a la calificación.')}).superRefine((survey,ctx) => {
   const first = survey.questions[0];
   if (!first || first.type !== 'rating' || !first.required || first.id !== RATING_ID || first.prompt !== RATING_PROMPT || survey.questions.slice(1).some(q => q.type === 'rating')) ctx.addIssue({code:'custom',path:['questions'],message:'La primera pregunta debe ser la calificación obligatoria de 1 a 5 estrellas.'});
   if(new Set(survey.questions.map(q=>q.id)).size !== survey.questions.length) ctx.addIssue({code:'custom',path:['questions'],message:'Cada pregunta debe tener un identificador único.'});
@@ -58,7 +59,7 @@ export type RestaurantInput = z.input<typeof restaurantSchema>;
 export type EmployeeInput = z.input<typeof employeeSchema>;
 export type Question = z.infer<typeof questionSchema>;
 export type SurveyInput = z.infer<typeof surveySchema>;
-export const draftSchema=z.object({title:z.string().max(150,'Máximo 150 caracteres.'),questions:z.array(z.object({id:z.uuid(),prompt:z.string().max(250),type:z.enum(['rating','text','single','multiple']),required:z.boolean(),options:z.array(z.string().max(120)).max(10),presentation:z.enum(['short','long','scale','yes_no']).optional()})).min(1).max(21),theme:surveyThemeSchema.default(DEFAULT_THEME),builderStep:z.number().int().min(1).max(3).default(1)}).superRefine((draft,ctx)=>{const first=draft.questions[0];if(!first||first.id!==RATING_ID||first.type!=='rating'||!first.required||first.prompt!==RATING_PROMPT||first.options.length||first.presentation||draft.questions.slice(1).some(q=>q.type==='rating')||new Set(draft.questions.map(q=>q.id)).size!==draft.questions.length)ctx.addIssue({code:'custom',message:'Conserva la pregunta inicial de estrellas.'});});
+export const draftSchema=z.object({title:z.string().max(150,'Máximo 150 caracteres.'),questions:z.array(z.object({id:z.uuid(),prompt:z.string().max(250),type:z.enum(['rating','text','single','multiple']),required:z.boolean(),options:z.array(z.string().max(120)).max(10),presentation:z.enum(['short','long','scale','yes_no']).optional()})).min(1).max(21),contact_settings:contactSettingsSchema.default(DEFAULT_CONTACT),theme:surveyThemeSchema.default(DEFAULT_THEME),builderStep:z.number().int().min(1).max(3).default(1)}).superRefine((draft,ctx)=>{const first=draft.questions[0];if(!first||first.id!==RATING_ID||first.type!=='rating'||!first.required||first.prompt!==RATING_PROMPT||first.options.length||first.presentation||draft.questions.slice(1).some(q=>q.type==='rating')||new Set(draft.questions.map(q=>q.id)).size!==draft.questions.length)ctx.addIssue({code:'custom',message:'Conserva la pregunta inicial de estrellas.'});});
 export type SurveyDraft=z.infer<typeof draftSchema>;
 export function initials(first: string, last = '') { return ((first.trim()[0] || '') + (last.trim()[0] || '')).toLocaleUpperCase('es-MX'); }
 export function surveyPath(restaurantId: string, employeeId: string) { return `/encuesta/${encodeURIComponent(restaurantId)}/${encodeURIComponent(employeeId)}`; }

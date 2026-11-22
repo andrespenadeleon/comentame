@@ -1,4 +1,5 @@
 import 'server-only';
+import { normalizeContact } from './survey-contact';
 import { normalizeTheme } from './survey-theme';
 import type { PublishedSurvey } from './survey-types';
 import type { EngagementMetrics,VisitMetrics } from './opinions';
@@ -6,7 +7,7 @@ import type { Employee } from './data';
 import { createClient } from './supabase/server';
 import { withInitialRating,type SurveyDraft } from './validation';
 export async function restaurantData(db:Awaited<ReturnType<typeof createClient>>,id:string,includeEmployees=true) {
-  const [e,s,publishedResult]=await Promise.all([includeEmployees?db.from('employees').select('id,restaurant_id,first_name,last_name,role,photo_path').eq('restaurant_id',id).is('deleted_at',null).order('created_at'):{data:[],error:null},db.from('survey_drafts').select('title,questions,theme,editor_state,builder_step').eq('restaurant_id',id).maybeSingle(),db.from('survey_versions').select('id,version,title,questions,published_at,theme').eq('restaurant_id',id).order('version',{ascending:false}).limit(1).maybeSingle()]);
+  const [e,s,publishedResult]=await Promise.all([includeEmployees?db.from('employees').select('id,restaurant_id,first_name,last_name,role,photo_path').eq('restaurant_id',id).is('deleted_at',null).order('created_at'):{data:[],error:null},db.from('survey_drafts').select('title,questions,theme,editor_state,builder_step,contact_settings').eq('restaurant_id',id).maybeSingle(),db.from('survey_versions').select('id,version,title,questions,published_at,theme,contact_settings').eq('restaurant_id',id).order('version',{ascending:false}).limit(1).maybeSingle()]);
   if(e.error||s.error)throw new Error('No pudimos cargar los datos del restaurante.');
   const employees:Employee[]=await Promise.all((e.data||[]).map(async employee=>{
     if(!employee.photo_path)return employee;
@@ -16,7 +17,7 @@ export async function restaurantData(db:Awaited<ReturnType<typeof createClient>>
   const draft=s.data;
   const {data:published,error:publishedError}=publishedResult;
   if(publishedError)throw new Error('No pudimos cargar la encuesta publicada.');
-  return {employees,published:published as PublishedSurvey|null,draft:draft?{title:draft.editor_state?.title??draft.title,questions:withInitialRating(draft.editor_state?.questions??draft.questions),theme:normalizeTheme(draft.theme),builderStep:draft.builder_step} as SurveyDraft:null};
+  return {employees,published:published as PublishedSurvey|null,draft:draft?{title:draft.editor_state?.title??draft.title,questions:withInitialRating(draft.editor_state?.questions??draft.questions),contact_settings:normalizeContact(draft.contact_settings),theme:normalizeTheme(draft.theme),builderStep:draft.builder_step} as SurveyDraft:null};
 }
 
 export async function teamData(db:Awaited<ReturnType<typeof createClient>>,restaurants:{id:string;name:string;active_survey_id?:string|null}[]) {

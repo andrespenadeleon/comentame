@@ -54,3 +54,16 @@ Pendientes solicitados; este registro no implementa cambios en la app. Esta actu
 - [ ] **Reporte completo con IA.** Consolidar la propuesta existente para generar un reporte del restaurante basado en respuestas por pregunta, métricas y leads: hallazgos, patrones, oportunidades de mejora y recomendaciones con evidencia y cantidades. Definir formato y alcance; distinguir datos observados de inferencias.
 
 Enfoque solicitado: entender y representar bien la data por pregunta, las personas que respondieron y los leads; usar esa base para reportes con IA y futuras secuencias. Sin fechas de entrega ni autorización para enviar comunicaciones.
+
+
+## Actualización del 21 de noviembre de 2026
+
+Pendientes solicitados; no implementar en este sprint:
+
+- [ ] **Métricas personalizables.** Permitir que cada usuario elija qué métricas/gráficas quiere ver y cuáles ocultar. Definir persistencia y alcance por usuario/restaurante.
+- [ ] **Secuencias de correo electrónico.** Mantener y desarrollar la propuesta existente de seguimiento/newsletter con consentimiento y baja.
+- [ ] **Secuencias de WhatsApp.** Definir automatizaciones, disparadores y consentimiento por canal.
+- [ ] **Gestionar el dashboard desde WhatsApp.** Permitir conectar el WhatsApp del usuario para consultar y administrar su restaurante desde la conversación, sin entrar al dashboard. Definir autenticación, permisos y confirmaciones para cambios.
+- [ ] **Publicar el sitio web del restaurante desde dashboard y WhatsApp.** Definir creación, edición, preview y publicación por ambos canales.
+
+Decisión actual del contacto: cada encuesta puede elegir obligatorio/opcional y teléfono/correo/cualquiera; el valor por defecto sigue siendo opcional + cualquiera. Esto reemplaza cualquier suposición previa de que el contacto deba ser obligatorio en todas las encuestas.
