@@ -1,4 +1,5 @@
 import 'server-only';
+import { questionAnalytics } from './question-analytics';
 import { participationVersions } from './participation-versions';
 import { responseTrends } from './response-trends';
 import { responseVersions } from './response-versions';
@@ -6,7 +7,7 @@ import type { createClient } from './supabase/server';
 import type { Answers } from './survey-types';
 import type { Question } from './validation';
 export type Opinion={id:string;restaurant_id:string;employee_id:string;restaurant_name:string;employee_name:string;guest_name:string;guest_contact:string|null;rating:number;answers:Answers;submitted_at:string;survey_version_id:string};
-export type OpinionParams={section?:string;restaurant?:string;period?:string;rating?:string;employee?:string;page?:string;detail?:string;tab?:string;scope?:string;portal?:string;view?:string;questionVersion?:string};
+export type OpinionParams={section?:string;restaurant?:string;period?:string;rating?:string;employee?:string;page?:string;detail?:string;tab?:string;scope?:string;portal?:string;view?:string;questionVersion?:string;question?:string;questionRestaurant?:string;questionPage?:string};
 type DB=Awaited<ReturnType<typeof createClient>>;
 export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionParams){
  const restaurant=restaurantIds.includes(params.restaurant||'')?params.restaurant:null;
@@ -22,7 +23,7 @@ export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionPa
  if(employee)query=query.eq('employee_id',employee);
  if(rating)query=query.eq('rating',rating);
  if(from)query=query.gte('submitted_at',from);
- const [list,summary,metrics,engagement,trends,questionVersions]=await Promise.all([query.order('submitted_at',{ascending:false}).order('id').range((page-1)*20,page*20-1),db.rpc('opinions_summary',{p_restaurant_id:restaurant,p_employee_id:employee,p_rating:rating,p_from:from}),db.rpc('survey_visit_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from,p_rating:rating}),db.rpc('survey_engagement_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from}),responseTrends(db,restaurant||null,employee||null,rating),participationVersions(db,restaurant||null)]);
+ const [list,summary,metrics,engagement,trends,questionVersions,questions]=await Promise.all([query.order('submitted_at',{ascending:false}).order('id').range((page-1)*20,page*20-1),db.rpc('opinions_summary',{p_restaurant_id:restaurant,p_employee_id:employee,p_rating:rating,p_from:from}),db.rpc('survey_visit_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from,p_rating:rating}),db.rpc('survey_engagement_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from}),responseTrends(db,restaurant||null,employee||null,rating),participationVersions(db,restaurant||null),questionAnalytics(db,restaurant||null,params.questionVersion,employee||null,rating,period)]);
  if(list.error||summary.error)throw new Error('No pudimos cargar las opiniones. Verifica que la migración de encuestas esté aplicada.');
  let detail:Opinion|null=null,version:{title:string;version:number;questions:Question[]}|null=null;
  if(params.detail&&/^[a-f0-9-]{36}$/i.test(params.detail)){
@@ -36,7 +37,7 @@ export async function opinionsData(db:DB,restaurantIds:string[],params:OpinionPa
  if(metrics.error&&!['PGRST202','42883'].includes(metrics.error.code))throw new Error('No pudimos cargar las visitas.');
  if(engagement.error&&!['PGRST202','42883'].includes(engagement.error.code))throw new Error('No pudimos cargar la participación.');
  const detailVersions=await responseVersions(db,(list.data||[]).map(item=>item.id));
- return {questionVersions,trends,detailVersions,engagement:engagement.error?null:engagement.data as EngagementMetrics,metrics:metrics.error?null:metrics.data as VisitMetrics,opinions:(list.data||[]) as Opinion[],count:list.count||0,summary:summary.data as {total:number;average:number|null;distribution:Record<string,number>},staff:staff||[],restaurant,period,rating,employee,page,detail,version};
+ return {questionAnalytics:questions,questionVersions,trends,detailVersions,engagement:engagement.error?null:engagement.data as EngagementMetrics,metrics:metrics.error?null:metrics.data as VisitMetrics,opinions:(list.data||[]) as Opinion[],count:list.count||0,summary:summary.data as {total:number;average:number|null;distribution:Record<string,number>},staff:staff||[],restaurant,period,rating,employee,page,detail,version};
 }
 
 export type VisitMetrics={visits:number;employees:{id:string;restaurant_id:string;name:string;restaurant_name:string;archived:boolean;role?:string;visits:number;responses:number;average:number|null}[]};

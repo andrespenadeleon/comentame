@@ -1,4 +1,5 @@
 import 'server-only';
+import { questionAnalytics } from './question-analytics';
 import { normalizeContact } from './survey-contact';
 import { normalizeTheme } from './survey-theme';
 import { withInitialRating,type SurveyDraft } from './validation';
@@ -28,13 +29,13 @@ export async function portalOpinions(params:OpinionParams){
  const page=Math.min(100000,Math.max(1,Number.parseInt(params.page||'1',10)||1));
  const detail=z.uuid().safeParse(params.detail).success?params.detail!:null;
  const from=period==='all'?null:new Date(Date.now()-Number(period)*86400000).toISOString();
- const [opinions,metrics,engagement,trends,questionVersions]=await Promise.all([
+ const [opinions,metrics,engagement,trends,questionVersions,questions]=await Promise.all([
  db.rpc('portal_opinions',{p_restaurant_id:restaurant,p_period:period,p_rating:rating,p_employee_id:employee,p_page:page,p_detail:detail}),
  db.rpc('portal_visit_metrics',{p_restaurant_id:restaurant,p_employee_id:employee,p_rating:rating,p_from:from}),
- db.rpc('portal_survey_engagement',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from}),params.section==='opiniones'?responseTrends(db,restaurant,employee,rating):null,params.section==='opiniones'?participationVersions(db,restaurant):null]);
+ db.rpc('portal_survey_engagement',{p_restaurant_id:restaurant,p_employee_id:employee,p_from:from}),params.section==='opiniones'?responseTrends(db,restaurant,employee,rating):null,params.section==='opiniones'?participationVersions(db,restaurant):null,params.section==='opiniones'?questionAnalytics(db,restaurant,params.questionVersion,employee,rating,period):null]);
  if(opinions.error||metrics.error||engagement.error)throw new Error('No pudimos cargar las opiniones y métricas del portal.');
  const detailVersions=await responseVersions(db,((opinions.data?.opinions||[]) as {id:string}[]).map(item=>item.id));
- return {...opinions.data,questionVersions,trends,detailVersions,metrics:metrics.data as VisitMetrics,engagement:engagement.data as EngagementMetrics} as Awaited<ReturnType<typeof opinionsData>>;
+ return {...opinions.data,questionAnalytics:questions,questionVersions,trends,detailVersions,metrics:metrics.data as VisitMetrics,engagement:engagement.data as EngagementMetrics} as Awaited<ReturnType<typeof opinionsData>>;
 }
 export type PortalSurvey={id?:string;restaurant_id:string;restaurant_name:string;title:string;questions:Question[];theme:SurveyTheme;contact_settings?:import('./survey-contact').ContactSettings;logo_path?:string|null;social_links?:Restaurant['social_links'];google_maps_url?:string|null;version?:number;active?:boolean;published_at?:string;updated_at?:string};
 export async function portalSurveys(restaurant:string,page:number){

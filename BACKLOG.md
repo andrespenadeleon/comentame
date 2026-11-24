@@ -60,10 +60,17 @@ Enfoque solicitado: entender y representar bien la data por pregunta, las person
 
 Pendientes solicitados; no implementar en este sprint:
 
-- [ ] **Métricas personalizables.** Permitir que cada usuario elija qué métricas/gráficas quiere ver y cuáles ocultar. Definir persistencia y alcance por usuario/restaurante.
+- [x] **Métricas personalizables.** Panel lateral en Opiniones y métricas con switches, cambios inmediatos y preferencias por usuario/restaurante (alcance consolidado separado). Todo visible por defecto; Google solo para admin. Persistencia requiere `202611230003_metric_preferences.sql`.
 - [ ] **Secuencias de correo electrónico.** Mantener y desarrollar la propuesta existente de seguimiento/newsletter con consentimiento y baja.
 - [ ] **Secuencias de WhatsApp.** Definir automatizaciones, disparadores y consentimiento por canal.
 - [ ] **Gestionar el dashboard desde WhatsApp.** Permitir conectar el WhatsApp del usuario para consultar y administrar su restaurante desde la conversación, sin entrar al dashboard. Definir autenticación, permisos y confirmaciones para cambios.
 - [ ] **Publicar el sitio web del restaurante desde dashboard y WhatsApp.** Definir creación, edición, preview y publicación por ambos canales.
 
 Decisión actual del contacto: cada encuesta puede elegir obligatorio/opcional y teléfono/correo/cualquiera; el valor por defecto sigue siendo opcional + cualquiera. Esto reemplaza cualquier suposición previa de que el contacto deba ser obligatorio en todas las encuestas.
+
+## Survey versioning and admin preview links — 21 November 2026
+
+- [ ] **Review when publishing needs a new version.** Draft saves already remain in the same draft; publishing currently creates a version. Keep immutable snapshots when questions, options, requiredness, contact rules or other response interpretation changes. Explore skipping a new version for an unchanged republish and separating purely visual/copy adjustments from response-schema changes. Do not overwrite historical question definitions or reinterpret past answers. Decide which edits count as cosmetic before implementation; version increments themselves are acceptable when preserving meaningful changes.
+- [ ] **Admin preview links (`admin=true`).** Add the parameter automatically when copying survey links from the portal admin. For an authenticated portal admin, open a preview that excludes visits, starts, active time, submissions and Google-click events from live metrics and allows progressing to the success screen without filling required questions. Preview must not insert survey responses or leads. The parameter is only a preview request: verify portal-admin status on the server and never treat it as authorization or bypass validation on real submission endpoints. For ordinary/unauthenticated visitors using the same link, ignore the parameter and retain the normal survey, validation and tracking. Preserve the existing restaurant/employee link identifiers. Consider visibly identifying preview mode and keeping an explicit clean/live link available for NFC distribution.
+
+Backlog only: no versioning, copied-link or public-survey behavior changed by recording these items.

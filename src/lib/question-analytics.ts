@@ -1,0 +1,5 @@
+import 'server-only';
+import { z } from 'zod';
+import type { createClient } from './supabase/server';
+import { questionAnalyticsScope,type QuestionAnalytics } from './question-analytics-types';
+export async function questionAnalytics(db:Awaited<ReturnType<typeof createClient>>,restaurant:string|null,version:string|undefined,employee:string|null,rating:number|null,period:string):Promise<QuestionAnalytics|null>{const selected=z.uuid().safeParse(version);const selectedVersion=selected.success?selected.data:null;const {data,error}=await db.rpc('question_answer_analytics',{p_restaurant_id:restaurant,p_version_id:selectedVersion,p_employee_id:employee,p_rating:rating,p_from:period==='all'?null:new Date(Date.now()-Number(period)*86400000).toISOString()});if(error){if(['PGRST202','42883','42501'].includes(error.code))return null;throw new Error('No pudimos cargar las respuestas por pregunta.');}return {...data,scope:questionAnalyticsScope(restaurant||'all',selectedVersion||'all',period,employee,rating)} as QuestionAnalytics;}
