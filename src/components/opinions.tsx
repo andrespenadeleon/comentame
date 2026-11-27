@@ -1,3 +1,4 @@
+import {FeedbackRowContent} from './feedback-row-content';
 import Link from 'next/link';
 import { MetricPreferencesServer } from './metric-preferences-server';
 import { MetricCustomize,MetricSlot,MetricsEmpty } from './metric-preferences';
@@ -39,9 +40,7 @@ export function OpinionList({data,params,compact=false,knownSurvey}:{data:Data;p
   const knownQuestions=knownSurvey?.id===item.survey_version_id?knownSurvey.questions:data.detail?.survey_version_id===item.survey_version_id?data.version?.questions:undefined;
   const comment=writtenPreview(item,knownQuestions);
   return <Link key={item.id} className={`opinion-row feedback-inbox-row ${comment?'has-comment':''}`} data-response-detail={entries.some(entry=>entry.id===item.id)?item.id:undefined} prefetch={false} href={detailHref(params,item.id)}>
-   <div className="feedback-person"><h3>{item.guest_name}</h3><div className={`feedback-rating ${item.rating<=2?'low-rating':''}`}><span className="opinion-stars" aria-label={`${item.rating} de 5 estrellas`}>{'★'.repeat(item.rating)}<span>{'★'.repeat(5-item.rating)}</span></span><span className="feedback-score" aria-hidden="true">{item.rating.toFixed(1)} / 5</span></div><p className="feedback-waiter"><span>Atendió:</span> {item.employee_name}</p><p className="feedback-restaurant">{item.restaurant_name}</p></div>
-   {comment&&<p className="feedback-comment">{comment}</p>}
-   <div className="feedback-row-end"><time dateTime={item.submitted_at}>{date(item.submitted_at)}</time><span className="text-link">Ver opinión →</span></div>
+   <FeedbackRowContent item={item} comment={comment}/>
   </Link>;
  })}</div>:<div className="empty"><div className="empty-icon"><MessageSquare size={24}/></div><h3>Aquí empieza la conversación.</h3><p>No hay opiniones para estos filtros. Las respuestas aparecerán aquí cuando tus comensales contesten la encuesta.</p></div>}{!compact&&data.count>20&&<nav className="pagination actions" aria-label="Páginas de opiniones">{data.page>1&&<Link className="button button-outline" href={opinionHref(params,{page:String(data.page-1),detail:undefined})}>← Anterior</Link>}<span>Página {data.page} · {data.count} opiniones</span>{data.page*20<data.count&&<Link className="button button-outline" href={opinionHref(params,{page:String(data.page+1),detail:undefined})}>Siguiente →</Link>}</nav>}</div></ResponseDetails>;}
 export function Opinions({data,params,restaurants,activeRestaurantId}:{data:Data;params:OpinionParams;restaurants:{id:string;name:string}[];activeRestaurantId:string}){
