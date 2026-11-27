@@ -17,10 +17,11 @@ async function execute(input:unknown,generate:boolean){
  const db=await createClient();const {data:{user},error:authError}=await db.auth.getUser();if(authError||!user?.email_confirmed_at)return Response.json({error:'Vuelve a iniciar sesión.'},{status:401,headers});
  const {data:admin}=await db.rpc('is_portal_admin');if(admin!==true)return Response.json({error:'Solo administradores del portal pueden acceder a los reportes IA.'},{status:403,headers});
  const parsed=(generate?scope.extend({requestId:z.uuid()}):scope).safeParse(input);
+ const validatedRequestId=parsed.success&&'requestId' in parsed.data&&typeof parsed.data.requestId==='string'?parsed.data.requestId:null;
  const operationId=crypto.randomUUID(),audit=createAIAudit(db,operationId);
  const environment=process.env.VERCEL_ENV==='production'?'production':process.env.VERCEL_ENV==='preview'?'preview':'development';
  // Start before reservation so quota/configuration failures are visible as operations too.
- await audit.start({restaurant_id:parsed.success?parsed.data.restaurant:null,request_id:parsed.success&&generate?(parsed.data as {requestId:string}).requestId:null,environment,model:'gpt-6-luna',metadata:{is_admin_run:true,method:generate?'POST':'GET',kind:generate?'report_generation':'report_read',...(parsed.success?{range_start:parsed.data.start,range_end:parsed.data.end,version:parsed.data.version,employee_filter:!!parsed.data.employee,rating_filter:parsed.data.rating||null}:{})}});
+ await audit.start({restaurant_id:parsed.success?parsed.data.restaurant:null,request_id:generate?validatedRequestId:null,environment,model:'gpt-6-luna',metadata:{is_admin_run:true,method:generate?'POST':'GET',kind:generate?'report_generation':'report_read',...(parsed.success?{range_start:parsed.data.start,range_end:parsed.data.end,version:parsed.data.version,employee_filter:!!parsed.data.employee,rating_filter:parsed.data.rating||null}:{})}});
  const respond=(body:Record<string,unknown>,status=200)=>Response.json({...body,operationId,monitoringDegraded:audit.degraded},{status,headers:{...headers,'X-AI-Operation-ID':operationId}});
  if(!parsed.success){await audit.failure({code:'invalid_filters',message:'Fechas o filtros no válidos.',stage:'validation',retryable:false},'blocked');return respond({error:'Selecciona un restaurante y fechas válidas.'},400);}
  const p=parsed.data,args={p_restaurant:p.restaurant,p_start:p.start,p_end:p.end,p_version:p.version==='all'?null:p.version,p_employee:p.employee||null,p_rating:p.rating||null};
@@ -30,7 +31,8 @@ async function execute(input:unknown,generate:boolean){
   if(!process.env.OPENAI_API_KEY){await audit.failure({code:'ai_not_configured',message:'Falta OPENAI_API_KEY en el servidor.',stage:'configuration',retryable:false},'blocked');return respond({error:'Configura OPENAI_API_KEY en el servidor para generar reportes.',code:'ai_not_configured'},503);}
   // Fail closed if we cannot persist the initial audit. Do not make an unlogged paid call.
   if(audit.degraded)return respond({error:'No podemos guardar el registro de actividad IA. Actualiza Supabase antes de generar reportes.',code:'audit_unavailable'},503);
-  const requestId=(p as z.infer<typeof scope>&{requestId:string}).requestId;
+  const requestId=validatedRequestId;
+  if(!requestId)return respond({error:'Identificador de solicitud no válido.',code:'invalid_request'},400);
   const reserved=await db.rpc('reserve_restaurant_ai_report',{...args,p_request:requestId});if(reserved.error)return dbFailure(reserved.error,'reservation');
   if(reserved.data.outcome!=='reserved'){await audit.finish('reused',reserved.data.outcome==='already_saved'?'Solicitud repetida; se reutilizó el reporte.':'No hay respuestas nuevas; sin llamada a OpenAI.');return respond({...reserved.data,report:await reportBranding(db,reserved.data.report,p.restaurant),configured:true});}
   await audit.event('reserved',{metadata:{report_id:requestId,range_start:p.start,range_end:p.end,version:p.version,employee_filter:!!p.employee,rating_filter:p.rating||null}},'info',undefined,'Reserva administrativa creada; sin consumo de cuota.');

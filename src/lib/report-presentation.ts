@@ -6,12 +6,13 @@ export function executiveSummary(summary:string){
  for(let i=0;i<matches.length;i++){const m=matches[i],priority=priorities.find(p=>p.key===m[1].toLowerCase());if(priority&&!priority.text)priority.text=summary.slice(m.index!+m[0].length,matches[i+1]?.index??summary.length).trim();}
  return {takeaway:(matches.length?summary.slice(0,matches[0].index):summary).replace(/^\s*(?:conclusión principal|conclusión)\s*:\s*/iu,'').trim(),priorities};
 }
-export function findingPresentation(observation:string){
+type FindingPresentation={observation:string;type:string|null;impact:string|null;impactLabel:string|null;strength:string|null};
+export function findingPresentation(observation:string):FindingPresentation{
  const pattern=/(?:^|;|\n)\s*(Tipo|Observación|Impacto operativo(?:\s*\([^)]*\))?|Solidez(?: de evidencia)?)\s*:\s*/giu;
  const matches=[...observation.matchAll(pattern)];
  if(!matches.length)return {observation,type:null,impact:null,impactLabel:null,strength:null};
  let text=observation.slice(0,matches[0].index).trim(),type:string|null=null,impact:string|null=null,impactLabel:string|null=null,strength:string|null=null;
- matches.forEach((m,i)=>{const value=observation.slice(m.index!+m[0].length,matches[i+1]?.index??observation.length).trim(),key=m[1].toLowerCase();if(key==='tipo')type=value;else if(key==='observación')text=value;else if(key.startsWith('impacto')){impact=value;impactLabel=m[1];}else if(key.startsWith('solidez'))strength=value;});
+ for(const [i,m] of matches.entries()){const value=observation.slice(m.index!+m[0].length,matches[i+1]?.index??observation.length).trim(),key=m[1].toLowerCase();if(key==='tipo')type=value;else if(key==='observación')text=value;else if(key.startsWith('impacto')){impact=value;impactLabel=m[1];}else if(key.startsWith('solidez'))strength=value;}
  return {observation:text||observation,type,impact,impactLabel,strength};
 }
 export function actionPriority(reason:string){const value=reason.match(/prioridad\s*:?\s*(alta|media|baja)/iu)?.[1].toLowerCase();return value??null;}
