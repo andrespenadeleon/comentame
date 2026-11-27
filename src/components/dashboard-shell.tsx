@@ -2,7 +2,7 @@
 import { useEffect,useRef,useState,useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LayoutDashboard,Store,Users,ClipboardList,Menu,X,MessageSquare,LifeBuoy,CircleAlert,ContactRound } from 'lucide-react';
+import { LayoutDashboard,Store,Users,ClipboardList,Menu,X,MessageSquare,LifeBuoy,CircleAlert,ContactRound,Activity } from 'lucide-react';
 import { signOut } from '@/app/actions/auth';
 import { LoadingIndicator } from './loading-indicator';
 import { RestaurantSwitcher } from './restaurant-switcher';
@@ -10,6 +10,7 @@ import { SignOutButton } from './signout-button';
 const navigation=[{id:'resumen',label:'Resumen',icon:LayoutDashboard},{id:'opiniones',label:'Opiniones y métricas',icon:MessageSquare},{id:'leads',label:'Leads',icon:ContactRound},{id:'restaurante',label:'Mi restaurante',icon:Store},{id:'equipo',label:'Mi equipo',icon:Users},{id:'encuesta',label:'Mi encuesta',icon:ClipboardList},{id:'soporte',label:'Soporte',icon:LifeBuoy}];
 export function DashboardShell({name,restaurantName,restaurantId,restaurantCount,restaurants,section,children,surveyNeedsSetup=false,portal=false}:{name:string;restaurantName:string;restaurantId:string;restaurantCount:number;restaurants:{id:string;name:string;logo_path?:string|null}[];section:string;children:React.ReactNode;surveyNeedsSetup?:boolean;portal?:boolean}) {
   const basePath=portal?'/admin':'/dashboard';
+  const items=portal?[...navigation,{id:'ia',label:'Actividad IA',icon:Activity}]:navigation;
   const [open,setOpen]=useState(false);
   const [pending,startTransition]=useTransition();
   const router=useRouter();
@@ -46,6 +47,6 @@ export function DashboardShell({name,restaurantName,restaurantId,restaurantCount
     event.preventDefault();close();startTransition(()=>router.push(url.pathname+url.search));
   }}>
     {open&&<div className="nav-backdrop" onClick={close} aria-hidden="true"/>}
-    <aside ref={menu} id="dashboard-nav" role={open?'dialog':undefined} aria-modal={open||undefined} aria-label="Menú principal" className={`app-sidebar ${open?'is-open':''}`}><button className="nav-close icon-action" onClick={close} aria-label="Cerrar navegación"><X size={22}/></button><span className="restaurant-label">{portal?'RESTAURANTES':restaurantCount>1?'TUS RESTAURANTES':'TU RESTAURANTE'}</span><RestaurantSwitcher key={restaurantId} restaurants={restaurants} activeId={restaurantId} basePath={basePath}/><nav className="app-nav" aria-label="Navegación de tu restaurante">{navigation.map(n=><Link key={n.id} href={`${basePath}?section=${n.id}&restaurant=${restaurantId}`} aria-current={section===n.id?'page':undefined}><n.icon size={18} aria-hidden="true"/>{portal?(n.id==='restaurante'?'Restaurantes':n.id==='encuesta'?'Encuestas':n.id==='equipo'?'Equipo':n.label):n.id==='restaurante'&&restaurantCount>1?'Mis restaurantes':n.label}{!portal&&n.id==='encuesta'&&surveyNeedsSetup&&<span className="nav-setup-indicator" title="Encuesta pendiente de publicar"><CircleAlert size={15} aria-hidden="true"/><span className="sr-only">Encuesta pendiente de publicar</span></span>}</Link>)}</nav><div className="sidebar-bottom"><form action={signOut}><SignOutButton sidebar/></form></div></aside>
+    <aside ref={menu} id="dashboard-nav" role={open?'dialog':undefined} aria-modal={open||undefined} aria-label="Menú principal" className={`app-sidebar ${open?'is-open':''}`}><button className="nav-close icon-action" onClick={close} aria-label="Cerrar navegación"><X size={22}/></button><span className="restaurant-label">{portal&&section==='ia'?'VISTA GLOBAL':portal?'RESTAURANTES':restaurantCount>1?'TUS RESTAURANTES':'TU RESTAURANTE'}</span>{portal&&section==='ia'?<p className="ai-monitor-global-note">Actividad de todos los restaurantes</p>:<RestaurantSwitcher key={restaurantId} restaurants={restaurants} activeId={restaurantId} basePath={basePath}/>}<nav className="app-nav" aria-label="Navegación de tu restaurante">{items.map(n=><Link key={n.id} href={`${basePath}?section=${n.id}&restaurant=${n.id==='ia'?'all':restaurantId}`} aria-current={section===n.id?'page':undefined}><n.icon size={18} aria-hidden="true"/>{portal?(n.id==='restaurante'?'Restaurantes':n.id==='encuesta'?'Encuestas':n.id==='equipo'?'Equipo':n.label):n.id==='restaurante'&&restaurantCount>1?'Mis restaurantes':n.label}{!portal&&n.id==='encuesta'&&surveyNeedsSetup&&<span className="nav-setup-indicator" title="Encuesta pendiente de publicar"><CircleAlert size={15} aria-hidden="true"/><span className="sr-only">Encuesta pendiente de publicar</span></span>}</Link>)}</nav><div className="sidebar-bottom"><form action={signOut}><SignOutButton sidebar/></form></div></aside>
     <main id="main" className="dashboard-main" aria-busy={pending} inert={open}>{pending&&<LoadingIndicator dashboard/>}<div className="dashboard-content" hidden={pending}>{children}</div></main></div></>;
 }

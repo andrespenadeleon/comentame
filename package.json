@@ -12,10 +12,13 @@
     "test:smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.125",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-slot": "^1.5.0",
+    "@react-pdf/renderer": "^4.9.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
+    "ai": "^7.0.183",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "exceljs": "^4.4.0",
@@ -24,6 +27,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-hook-form": "^7.91.0",
+    "sharp": "^0.35.5",
     "tailwind-merge": "^3.7.0",
     "zod": "^4.6.7"
   },

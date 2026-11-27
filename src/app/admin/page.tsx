@@ -1,3 +1,5 @@
+import { AIMonitor } from '@/components/ai-monitor';
+import type { AIMonitorParams } from '@/lib/ai-monitor-types';
 import { SurveyEditor } from '@/components/survey-editor';
 import { Leads } from '@/components/leads';
 import Link from 'next/link';
@@ -15,21 +17,22 @@ import { portalDirectory,portalHref } from '@/lib/portal-admin';
 import type { OpinionParams } from '@/lib/opinions';
 export const dynamic='force-dynamic';
 export const metadata={title:'Portal de administración',robots:{index:false,follow:false}};
-type Params=OpinionParams&{q?:string;status?:string;edit?:string};
-const sections=['resumen','opiniones','leads','restaurante','equipo','encuesta','soporte'];
+type Params=OpinionParams&AIMonitorParams&{q?:string;status?:string;edit?:string};
+const sections=['resumen','opiniones','leads','restaurante','equipo','encuesta','soporte','ia'];
 export default async function AdminPage({searchParams}:{searchParams:Promise<Params>}){
  const [space,params,jar]=await Promise.all([portalWorkspace(),searchParams,cookies()]);
  if(space.setup)return <><AppHeader name={space.user.email}/><main id="main" className="portal-main"><section className="card stack"><h1>Actualización del portal pendiente</h1><p>Aplica la migración 202611030003_portal_readonly_dashboard.sql en Supabase para habilitar la navegación del portal.</p></section></main></>;
  const selected=params.restaurant||jar.get('cm_portal_restaurant')?.value||'all';
  const active=space.restaurants.find(restaurant=>restaurant.id===selected);
- const restaurant=active?.id||'all';
+ const restaurant=params.section==='ia'?'all':active?.id||'all';
  const section=sections.includes(params.section||'')?params.section!:params.q||params.status?'equipo':'resumen';
- const headings:Record<string,string>={leads:'Leads',resumen:'Resumen del portal',opiniones:'Opiniones y métricas',restaurante:'Restaurantes',equipo:'Tu equipo, más claro.',encuesta:'Encuestas de tus restaurantes',soporte:'Soporte'};
+ const headings:Record<string,string>={ia:'Actividad IA',leads:'Leads',resumen:'Resumen del portal',opiniones:'Opiniones y métricas',restaurante:'Restaurantes',equipo:'Tu equipo, más claro.',encuesta:'Encuestas de tus restaurantes',soporte:'Soporte'};
  const options=[{id:'all',name:'Todos los restaurantes'},...space.restaurants];
- return <DashboardShell portal name={space.user.email||'Portal admin'} restaurants={options} restaurantName={active?.name||'Todos los restaurantes'} restaurantId={restaurant} restaurantCount={space.restaurants.length} section={section}><div className="page-head"><span className="eyebrow">PORTAL ADMIN / {active?.name||'Todos los restaurantes'}</span><h1>{section==='opiniones'&&params.view==='questions'?'Participación por pregunta':headings[section]}</h1><p className="muted">{section==='opiniones'?(params.view==='questions'?'Descubre cómo interactúan tus clientes con cada pregunta de tu encuesta.':'Explora las respuestas y encuentra oportunidades de mejora.'):'Consulta los datos de tus restaurantes.'}</p></div><Suspense key={JSON.stringify({...params,restaurant,section})} fallback={<LoadingIndicator dashboard/>}><PortalContent section={section} params={{...params,section,restaurant,portal:'1'}} restaurants={space.restaurants}/></Suspense></DashboardShell>;
+ return <DashboardShell portal name={space.user.email||'Portal admin'} restaurants={options} restaurantName={section==='ia'?'Actividad global IA':active?.name||'Todos los restaurantes'} restaurantId={restaurant} restaurantCount={space.restaurants.length} section={section}><div className="page-head"><span className="eyebrow">PORTAL ADMIN / {section==='ia'?'VISTA GLOBAL':active?.name||'Todos los restaurantes'}</span><h1>{section==='opiniones'&&params.view==='questions'?'Participación por pregunta':headings[section]}</h1><p className="muted">{section==='opiniones'?(params.view==='questions'?'Descubre cómo interactúan tus clientes con cada pregunta de tu encuesta.':'Explora las respuestas y encuentra oportunidades de mejora.'):section==='ia'?'Supervisa consumo, límites, alertas y errores de la plataforma.':'Consulta los datos de tus restaurantes.'}</p></div><Suspense key={JSON.stringify({...params,restaurant,section})} fallback={<LoadingIndicator dashboard/>}><PortalContent section={section} params={{...params,section,restaurant,portal:'1'}} restaurants={space.restaurants}/></Suspense></DashboardShell>;
 }
 async function PortalContent({section,params,restaurants}:{section:string;params:Params;restaurants:Awaited<ReturnType<typeof portalWorkspace>>['restaurants']}){
  const restaurant=params.restaurant||'all';
+ if(section==='ia')return <AIMonitor params={params} restaurants={restaurants}/>;
  if(section==='leads')return restaurant==='all'?<section className="card empty"><h2>Elige un restaurante</h2><p>Selecciona un restaurante en el menú para consultar sus leads.</p></section>:<Leads restaurantId={restaurant} params={params} portal/>;
  if(section==='opiniones'||section==='resumen'){
  const data=await portalOpinions(section==='resumen'?{...params,rating:undefined,employee:undefined,page:'1'}:params);

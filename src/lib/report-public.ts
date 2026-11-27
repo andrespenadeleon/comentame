@@ -1,0 +1,14 @@
+import 'server-only';
+import type {RestaurantReport} from './restaurant-report-types';
+// Explicit projection: never publish the raw reservation, prompt, usage, source UUIDs or contacts.
+export function publicReport(report:RestaurantReport,privateValues:{name:string|null;contact:string|null}[]):RestaurantReport{
+ const secrets=[...new Set(privateValues.flatMap(v=>[v.name,v.contact]).filter((v):v is string=>!!v?.trim()).map(v=>v.trim()))].sort((a,b)=>b.length-a.length);
+ const clean=(text:string)=>{
+  let result=text;
+  for(const secret of secrets){let cursor=0;while(true){const index=result.toLocaleLowerCase().indexOf(secret.toLocaleLowerCase(),cursor);if(index<0)break;result=result.slice(0,index)+'[dato omitido]'+result.slice(index+secret.length);cursor=index+'[dato omitido]'.length;}}
+  return result.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[correo omitido]').replace(/(?:\+?\d[\s().-]*){10,15}/g,'[teléfono omitido]');
+ };
+ const s=report.snapshot,n=report.output;
+ const snapshot:RestaurantReport['snapshot']={logo_path:s.logo_path||null,from:s.from,through:s.through,previous_from:s.previous_from,previous_through:s.previous_through,responses:s.responses,average:s.average,previous:{responses:s.previous.responses,average:s.previous.average},leads:s.leads,visits:s.visits,starts:s.starts,completions:s.completions,average_seconds:s.average_seconds,ratings:s.ratings.map(v=>({rating:v.rating,total:v.total})),daily:s.daily.map(v=>({day:v.day,total:v.total})),restaurant_name:clean(s.restaurant_name),google_clicks:0,employees:s.employees.map((e,i)=>({id:String(i),name:e.name,total:e.total,average:e.average})),questions:s.questions.map((q,i)=>({key:q.key==='rating'?'rating':`question-${i}`,label:clean(q.label),question_type:q.question_type,presentation:q.presentation,answered:q.answered,distribution:q.distribution.map(d=>({label:clean(d.label),total:d.total})),comments:q.comments.slice(0,3).map((c,j)=>({response_id:`sample-${j}`,text:clean(c.text)}))}))};
+ return {id:'shared',range_start:report.range_start,range_end:report.range_end,created_at:report.created_at,completed_at:report.completed_at,model:'gpt-6-luna',usage:{input_tokens:0,output_tokens:0,estimated_usd:0},snapshot,output:{summary:clean(n.summary),findings:n.findings.map(f=>({title:clean(f.title),observation:clean(f.observation),priority:f.priority,question_keys:[],response_ids:[]})),themes:n.themes.map(t=>({title:clean(t.title),sentiment:t.sentiment,description:clean(t.description),response_ids:[]})),actions:n.actions.map(a=>({title:clean(a.title),reason:clean(a.reason),next_step:clean(a.next_step),measure:clean(a.measure),...(a.intent?{intent:a.intent}:{}),...(a.owner?{owner:clean(a.owner)}:{}),...(a.horizon?{horizon:clean(a.horizon)}:{}),question_keys:[],response_ids:[]})),limitations:[]}};
+}

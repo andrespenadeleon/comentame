@@ -1,0 +1,27 @@
+# Admin AI operations monitor
+
+## Activate
+Apply `supabase/migrations/202611270002_ai_observability.sql` after `202611270001_restaurant_ai_reports.sql` and its existing dependencies. Open `/admin?section=ia&restaurant=all` or **Actividad IA** in the portal navigation. The page defaults to all restaurants and environments, month-to-date, and has its own restaurant/status/environment/date filters. It deliberately ignores the contextual restaurant switcher.
+
+## Captured data
+Each authenticated portal-admin report GET/POST gets an operation UUID. A separate report request UUID ties retries to the reserved/saved report. Logs include lifecycle stages, actor ID, environment, model, safe scope metadata, provider call start, HTTP status and OpenAI request/response IDs when available, input/output/cache/reasoning tokens, estimated cost, duration, validation failures, application quota blocks, persistence retries, successful saves and quota-release confirmation. Opening saved state is classified as a read/reuse and makes no model call. Model errors are classified into authentication, access, unavailable model, billing/usage limits, request rate limits, unsupported parameters/request schema, timeouts, invalid structured output, invalid evidence, and unknown errors. No model change is made automatically.
+
+No API keys, authorization headers, prompts, guest contacts, raw model responses, full survey snapshots, arbitrary exception messages, or stacks are written to the audit records. Provider error JSON is parsed only for its code/type/parameter fields; values must match a bounded identifier pattern. This log is for authenticated AI application operations, not a replacement for infrastructure/access/security logs covering unauthenticated and malformed transport requests.
+
+## Accuracy and coverage
+A failed call may have consumed paid tokens. SDK usage returned on structured-output errors and post-generation evidence failures is retained. Missing usage is unknown, never zero. Estimates use the selected GPT-6 Luna standard token rates, discounted known cache reads, as of Nov 27, 2026. Provider invoices remain authoritative. UI never claims to fetch OpenAI credit balance or live account limits.
+
+Report rows existing before monitoring are imported with an unconfirmed environment and an explicitly unknown original error for failures. Original exceptions were swallowed by the old handler and cannot be recovered from report rows. Historical running entries are imported as interrupted. New running operations without updates for 12 minutes are displayed as interrupted; this does not mutate report quota or prove provider failure. Report reservations retain their existing 10-minute expiration.
+
+The global month cost alert sums known estimates across ALL restaurants and environments regardless of current filters. Threshold is optional, editable by portal admins, and changes are logged. Alerts appear at 80%/100%; they are dashboard notices, not enforced spending caps and not external email/WhatsApp notifications. Local, preview and production activity share the same two-per-week restaurant quota when they use the same Supabase project. The model, output cap, timeout and input limits are shown as application configuration, not claimed provider account limits.
+
+If initial monitoring cannot persist, paid generation fails closed. Mid-operation audit errors fall back to metadata-only server logs keyed by operation ID and flag later recovered operation records as incomplete. No logging system can guarantee capture if the whole runtime terminates; interrupted-state alerts cover that uncertainty. Refreshing known usage again at final save helps recover transient event-write gaps. An optional 15-second dashboard refresh pauses in hidden tabs. Operation rows prefetch diagnostics; drawers animate without re-rendering the whole dashboard.
+
+Direct table access is revoked with RLS enabled. Each read/write RPC and each endpoint rechecks portal-admin authorization; owners cannot read other restaurants' AI activity. Rows are paginated (25); event detail is fetched separately. No retention deletion job or external alert sender is introduced.
+
+## Manual checks
+After migration, inspect an existing failed historical attempt, then initiate a report manually to capture a fresh diagnosis. Verify global/restaurant/environment filtering, forbidden owner requests, provider auth/model/billing/schema errors, known usage on failed validation, quota blocks without provider calls, duplicate request reuse, pending runs, saving failures, audit storage failure, filter pagination, alert threshold, keyboard/mobile layouts, and live refresh. Do not deliberately consume paid inference from an automated test. No paid reproduction of the reported failure was performed.
+
+
+### Report publication update
+`202611270003_report_publication_and_prompts.sql` supersedes shared admin/restaurant quota behavior. All admin runs are exempt from the restaurant quota but remain in operation/cost totals. Report-specific activity links use `aiRequest` and the monitor RPC's new eighth parameter `p_request`. Prompt settings are editable under Actividad IA, with immutable revisions and optimistic concurrency protection. Prompt bodies remain outside operational event logs; `prompt_loaded` stores only revision ID, version and contract. The report reservation captures the full template for historical attribution. Restaurant UI remains hidden; visibility flags do not enable access.
